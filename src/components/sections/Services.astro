@@ -1,0 +1,159 @@
+---
+/**
+ * Services — the freelance surface.
+ *
+ * Positioned as "engineer who ships production systems", not "affordable
+ * developer". Deliverables are listed concretely because the reader deciding
+ * whether to hire is trying to work out what they get, not how enthusiastic
+ * I am.
+ */
+import { SERVICES } from '@data/site';
+import Icon from '@components/ui/Icon.astro';
+import Button from '@components/ui/Button.astro';
+---
+
+<section id="services" class="section section--raised" aria-labelledby="services-heading">
+  <div class="container container--wide">
+    <header class="section__head">
+      <p class="eyebrow">Available for work</p>
+      <h2 id="services-heading">Contract engineering.</h2>
+      <p class="section__lede">
+        I take on a small number of contracts alongside final-year study. Scope is agreed in
+        writing before anything starts, and everything is handed over documented — the goal is
+        that you do not need to hire me again for the same system.
+      </p>
+    </header>
+
+    <ol class="services" role="list">
+      {
+        SERVICES.map((service, index) => (
+          <li class="service">
+            <span class="service__index" aria-hidden="true">
+              {String(index + 1).padStart(2, '0')}
+            </span>
+
+            <h3 class="service__title">{service.title}</h3>
+            <p class="service__description">{service.description}</p>
+
+            <ul class="service__deliverables" role="list">
+              {service.deliverables.map((deliverable) => (
+                <li>
+                  <Icon name="check" size={14} />
+                  <span>{deliverable}</span>
+                </li>
+              ))}
+            </ul>
+          </li>
+        ))
+      }
+    </ol>
+
+    <div class="services__cta">
+      <p>
+        Not sure which of these you need? Describe the problem and I will tell you honestly
+        whether I am the right person for it.
+      </p>
+      <Button href="/#contact" variant="primary" icon="arrow-right">Start a conversation</Button
+      >
+    </div>
+  </div>
+</section>
+
+<style>
+  .section--raised {
+    background-color: var(--surface-raised);
+    border-block: 1px solid var(--border-subtle);
+  }
+
+  .section__head {
+    max-inline-size: 62ch;
+    margin-block-end: var(--space-l);
+  }
+
+  .section__head h2 {
+    margin-block-start: var(--space-2xs);
+  }
+
+  .section__lede {
+    margin-block-start: var(--space-s);
+    color: var(--text-secondary);
+  }
+
+  .services {
+    display: grid;
+    gap: var(--space-m);
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr));
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: service;
+  }
+
+  .service {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    padding: var(--space-m);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-l);
+    background-color: var(--surface-base);
+  }
+
+  .service__index {
+    font-family: var(--font-mono);
+    font-size: var(--step--2);
+    letter-spacing: var(--tracking-caps);
+    color: var(--text-accent);
+  }
+
+  .service__title {
+    font-size: var(--step-1);
+  }
+
+  .service__description {
+    font-size: var(--step--1);
+    color: var(--text-secondary);
+  }
+
+  .service__deliverables {
+    display: grid;
+    gap: var(--space-2xs);
+    margin: 0;
+    margin-block-start: auto;
+    padding-block-start: var(--space-xs);
+    border-block-start: 1px solid var(--border-subtle);
+    list-style: none;
+    font-size: var(--step--1);
+  }
+
+  .service__deliverables li {
+    display: flex;
+    align-items: start;
+    gap: var(--space-2xs);
+    color: var(--text-secondary);
+  }
+
+  .service__deliverables :global(.icon) {
+    margin-block-start: 0.3em;
+    color: var(--text-accent);
+  }
+
+  .services__cta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-m);
+    margin-block-start: var(--space-l);
+    padding: var(--space-m);
+    border: 1px solid var(--border-accent);
+    border-radius: var(--radius-l);
+    background-color: var(--surface-accent-subtle);
+  }
+
+  .services__cta p {
+    max-inline-size: 52ch;
+    font-size: var(--step--1);
+    color: var(--text-secondary);
+  }
+</style>

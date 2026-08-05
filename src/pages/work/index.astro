@@ -1,0 +1,71 @@
+---
+/**
+ * Work index.
+ *
+ * The home page carries the same cards; this route exists so that "all
+ * work" is a real, linkable, indexable URL rather than a fragment — which
+ * matters both for sharing and for search.
+ */
+import { getCollection } from 'astro:content';
+import BaseLayout from '@layouts/BaseLayout.astro';
+import ProjectCard from '@components/ui/ProjectCard.astro';
+
+const projects = (await getCollection('projects', ({ data }) => !data.draft)).sort(
+  (a, b) => a.data.order - b.data.order,
+);
+---
+
+<BaseLayout
+  title="Work"
+  description="Engineering case studies — the problem, the architecture, the trade-off, and what the trade-off cost."
+  padded
+>
+  <div class="container container--wide">
+    <header class="page-head">
+      <p class="eyebrow">Selected work</p>
+      <h1>Case studies</h1>
+      <p class="page-head__lede">
+        Each of these is written up rather than screenshotted: what the problem actually was,
+        how the system is put together, the decision I would defend, and the one I would not.
+      </p>
+    </header>
+
+    <div class="grid">
+      {
+        projects.map((project) => (
+          <ProjectCard project={project} featured={project.data.featured} />
+        ))
+      }
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  .page-head {
+    max-inline-size: 62ch;
+    margin-block-end: var(--space-xl);
+  }
+
+  .page-head h1 {
+    margin-block-start: var(--space-2xs);
+    font-size: var(--step-5);
+  }
+
+  .page-head__lede {
+    margin-block-start: var(--space-s);
+    font-size: var(--step-1);
+    color: var(--text-secondary);
+  }
+
+  .grid {
+    display: grid;
+    gap: var(--space-m);
+    grid-template-columns: 1fr;
+  }
+
+  @media (min-width: 52rem) {
+    .grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+</style>

@@ -1,0 +1,265 @@
+/**
+ * Styles for React islands.
+ *
+ * Astro's scoped `<style>` blocks only apply to .astro components, so
+ * framework islands need their styles declared globally. Keeping them in
+ * one file — rather than reaching for a CSS-in-JS runtime — means island
+ * styling still ships as plain CSS in the main stylesheet, with nothing
+ * extra to download or execute.
+ *
+ * Every class here is namespaced to its island to keep the global surface
+ * honest.
+ */
+
+/* ══ ThemeToggle ═════════════════════════════════════════════════════════ */
+
+.theme-toggle {
+  display: grid;
+  place-items: center;
+  inline-size: 2.25rem;
+  block-size: 2.25rem;
+  border-radius: var(--radius-s);
+  color: var(--text-secondary);
+  transition:
+    color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
+}
+
+.theme-toggle:hover {
+  color: var(--text-primary);
+  background-color: var(--surface-raised);
+}
+
+/**
+ * The visible icon is chosen by the document theme attribute, not by
+ * component state. That is what lets the toggle render correctly during
+ * SSR and before hydration.
+ *
+ * Both icons occupy the same grid cell so the button never reflows.
+ */
+.theme-toggle__icon {
+  grid-area: 1 / 1;
+  transition:
+    opacity var(--duration-base) var(--ease-out),
+    transform var(--duration-base) var(--ease-spring);
+}
+
+/* Dark theme → offer the sun (switch to light). */
+:root[data-theme='dark'] .theme-toggle__icon--moon,
+:root:not([data-theme]) .theme-toggle__icon--moon {
+  opacity: 0;
+  transform: rotate(-90deg) scale(0.6);
+}
+
+/* Light theme → offer the moon (switch to dark). */
+:root[data-theme='light'] .theme-toggle__icon--sun {
+  opacity: 0;
+  transform: rotate(90deg) scale(0.6);
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) .theme-toggle__icon--sun {
+    opacity: 0;
+    transform: rotate(90deg) scale(0.6);
+  }
+
+  :root:not([data-theme]) .theme-toggle__icon--moon {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/**
+ * Cross-fade the document on theme change.
+ *
+ * `startViewTransition` snapshots the old and new frames; fading the new
+ * one in over the old avoids the harsh flash of inverting an entire page
+ * at once. Skipped automatically when the browser lacks support or the
+ * user prefers reduced motion.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root) {
+    animation: none;
+  }
+
+  ::view-transition-new(root) {
+    animation: view-fade-in var(--duration-slow) var(--ease-out);
+  }
+}
+
+@keyframes view-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ══ ContactForm ═════════════════════════════════════════════════════════ */
+
+.contact-form {
+  display: grid;
+  gap: var(--space-s);
+}
+
+.contact-form__row {
+  display: grid;
+  gap: var(--space-s);
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 34rem) {
+  .contact-form__row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.contact-form .field {
+  display: grid;
+  gap: var(--space-3xs);
+}
+
+.contact-form label {
+  font-family: var(--font-mono);
+  font-size: var(--step--2);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.contact-form .field__optional {
+  text-transform: none;
+  letter-spacing: var(--tracking-normal);
+  opacity: 0.7;
+}
+
+.contact-form input,
+.contact-form textarea {
+  padding: var(--space-2xs) var(--space-xs);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-m);
+  background-color: var(--surface-base);
+  color: var(--text-primary);
+  font-size: var(--step--1);
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
+}
+
+.contact-form textarea {
+  resize: vertical;
+  min-block-size: 8rem;
+  line-height: var(--leading-normal);
+}
+
+.contact-form input::placeholder,
+.contact-form textarea::placeholder {
+  color: var(--text-tertiary);
+}
+
+.contact-form input:hover,
+.contact-form textarea:hover {
+  border-color: var(--border-strong);
+}
+
+.contact-form input:disabled,
+.contact-form textarea:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/**
+ * Honeypot. Removed from the layout and from the accessibility tree without
+ * `display: none`, which some bots detect and skip.
+ */
+.contact-form__trap {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.contact-form__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-s);
+}
+
+.contact-form__submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: 2.5rem;
+  padding: var(--space-2xs) var(--space-m);
+  border: 1px solid transparent;
+  border-radius: var(--radius-m);
+  background-color: var(--accent);
+  color: var(--on-accent);
+  font-size: var(--step--1);
+  font-weight: var(--weight-semibold);
+  line-height: 1;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-base) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+}
+
+.contact-form__submit:hover:not(:disabled) {
+  background-color: var(--accent-hover);
+  box-shadow: var(--shadow-glow);
+}
+
+.contact-form__submit:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.contact-form__submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.contact-form__note {
+  flex: 1 1 14rem;
+  font-size: var(--step--2);
+  color: var(--text-tertiary);
+}
+
+.contact-form__error {
+  padding: var(--space-2xs) var(--space-xs);
+  border: 1px solid var(--c-danger);
+  border-radius: var(--radius-m);
+  background-color: color-mix(in oklab, var(--c-danger) 12%, transparent);
+  color: var(--text-primary);
+  font-size: var(--step--1);
+}
+
+/* ── Success state ─────────────────────────────────────────────────────── */
+
+.contact-form__result {
+  display: grid;
+  gap: var(--space-xs);
+  padding: var(--space-m);
+  border: 1px solid var(--border-accent);
+  border-radius: var(--radius-m);
+  background-color: var(--surface-accent-subtle);
+  font-size: var(--step--1);
+  color: var(--text-secondary);
+}
+
+.contact-form__result-title {
+  font-size: var(--step-1);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+}
+
+.contact-form__reset {
+  justify-self: start;
+  font-size: var(--step--1);
+  color: var(--text-accent);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}

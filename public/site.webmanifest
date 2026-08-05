@@ -1,0 +1,17 @@
+{
+  "name": "Kelvin Maina Ndegwa — Full-stack Engineer",
+  "short_name": "Kelvin Ndegwa",
+  "description": "Real-time and event-driven systems engineer. Mobile, web, and the backend underneath both.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b0d10",
+  "theme_color": "#0b0d10",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

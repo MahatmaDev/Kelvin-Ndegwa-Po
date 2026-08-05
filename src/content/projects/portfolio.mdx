@@ -1,0 +1,102 @@
+---
+title: This Portfolio
+tagline: A hand-built Astro site treated as a code sample, because someone will read the source.
+summary: >-
+  Rebuilt from a single 2,000-line index.html into a typed, content-driven Astro site
+  with a two-layer token system, one React island, and a performance budget it is
+  actually held to. The constraint that shaped everything: a hiring engineer will open
+  DevTools, and the site has to survive that.
+role: Design and engineering
+timeline: '2026'
+status: live
+stack:
+  - Astro
+  - TypeScript
+  - React
+  - MDX
+  - Modern CSS
+  - Vercel
+domains:
+  - frontend
+  - infra
+highlights:
+  - Exactly one hydrated component on the page — the theme toggle; navigation works without JS
+  - Two-layer design tokens in OKLCH, so theming remaps ~25 declarations rather than every stylesheet
+  - Content validated by Zod at build time — a frontmatter typo fails the build, not the page
+  - No flash of wrong theme, via a blocking inline script that runs before first paint
+links:
+  repo: https://github.com/MahatmaDev/Capstone-Project
+featured: false
+order: 3
+draft: false
+---
+
+import Callout from '@components/ui/Callout.astro';
+
+## Why rebuild at all
+
+The previous version worked. It was one HTML file, one stylesheet, and one script, and it looked
+fine. Two things were wrong with it.
+
+The first was that the repository contained `node_modules`, several PDFs, a PowerPoint deck and
+a `files.zip`. A hiring engineer who clones that learns something about me before reading a line
+of code, and it is not the thing I want them to learn.
+
+The second was that adding a case study meant editing markup by hand, so I did not add case
+studies. The site's structure was quietly deciding its own content.
+
+## The constraint that drove the design
+
+The audience is four readers with wildly different budgets: a recruiter who gives it forty
+seconds, an engineer who gives it five minutes and opens the network tab, a prospective client,
+and a peer. The recruiter's forty seconds set the performance ceiling; the engineer's network
+tab set the architecture.
+
+That produced one rule: **ship HTML, hydrate almost nothing.**
+
+<Callout variant="decision" title="Decision: Astro with a single island">
+The only component that hydrates is the theme toggle, because it is the only thing on the page
+whose behaviour genuinely requires client state. The mobile navigation drawer is a native
+`<dialog>` — the platform supplies the focus trap, the inert background, Escape-to-close and
+the ARIA semantics, which are precisely the four things hand-rolled modals get wrong.
+
+The cost is that anything genuinely interactive later needs a deliberate decision rather than a
+reflexive `useState`. That is the point.
+</Callout>
+
+## Design tokens
+
+Colours are authored in OKLCH and split into two layers: primitives (`--c-neutral-800`,
+`--c-accent-400`) that are theme-agnostic, and semantics (`--surface-raised`, `--text-secondary`)
+that components are allowed to reference. Components may never reach past the semantic layer.
+
+OKLCH rather than hex because it is perceptually uniform — a lightness step of 0.05 looks like
+the same size step at every hue, which hand-picked hex ramps never quite manage. The practical
+result is that the light theme was about twenty-five declarations, not an audit of every
+stylesheet in the project.
+
+The accent is a signal teal, chosen partly because it suits a systems-engineering thesis and
+partly to avoid the indigo-violet gradient that ships with every portfolio template in existence.
+
+## Content as data
+
+Case studies and posts are MDX validated by Zod at build time. The schema requires a title, a
+tagline, a stack, at least one highlight, and — for projects — an optional list of named
+trade-offs, each with a decision, a rationale, and what it cost.
+
+That last field exists to make a point structurally rather than by exhortation. A portfolio that
+lists only wins reads as marketing. Naming what a decision cost is what reads as engineering,
+and putting it in the schema means every future case study has to answer it.
+
+<Callout variant="warning" title="The honest limitation">
+There are no automated tests on this site. For a static content site the build is doing most of
+the work a test suite would — type checking, schema validation, and a broken import failing the
+build — but that is a justification, not a substitute. It belongs on the list.
+</Callout>
+
+## What is measured
+
+Lighthouse is run against the production deploy, not against `localhost` where everything is
+fast and cached. The budget is 95+ on all four categories, and the accessibility target is
+WCAG 2.2 AA — real focus indicators, a working skip link, honoured `prefers-reduced-motion`,
+and contrast checked in both themes rather than only in the dark one that was designed first.

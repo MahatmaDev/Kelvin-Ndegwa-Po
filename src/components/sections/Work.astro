@@ -1,0 +1,223 @@
+---
+/**
+ * Work — the section that actually does the persuading.
+ *
+ * Filtering is a plain script over `data-domains` attributes rather than a
+ * framework island. It toggles the `hidden` attribute on server-rendered
+ * cards, which means the full list is in the HTML for crawlers and for
+ * anyone whose JS never arrives, and the interaction costs no hydration.
+ */
+import { getCollection } from 'astro:content';
+import ProjectCard from '@components/ui/ProjectCard.astro';
+import Icon from '@components/ui/Icon.astro';
+
+const projects = (await getCollection('projects', ({ data }) => !data.draft)).sort(
+  (a, b) => a.data.order - b.data.order,
+);
+
+/** Only offer a filter for domains that at least one project actually has. */
+const DOMAIN_LABELS = {
+  backend: 'Backend',
+  frontend: 'Frontend',
+  mobile: 'Mobile',
+  payments: 'Payments',
+  data: 'Data',
+  infra: 'Infra',
+} as const;
+
+const presentDomains = (Object.keys(DOMAIN_LABELS) as (keyof typeof DOMAIN_LABELS)[]).filter(
+  (domain) => projects.some((project) => project.data.domains.includes(domain)),
+);
+---
+
+<section id="work" class="section" aria-labelledby="work-heading">
+  <div class="container container--wide">
+    <header class="section__head">
+      <div>
+        <p class="eyebrow">Selected work</p>
+        <h2 id="work-heading">Systems, not screenshots.</h2>
+        <p class="section__lede">
+          Each of these is written up as a case study — the problem, the architecture, the
+          trade-off I made, and what that trade-off cost. Screenshots prove a thing renders.
+          They do not prove it is correct.
+        </p>
+      </div>
+    </header>
+
+    <div class="filter" data-filter>
+      <span class="filter__label" id="filter-label">Filter</span>
+      <div class="filter__buttons" role="group" aria-labelledby="filter-label">
+        <button type="button" class="chip is-active" data-domain="all" aria-pressed="true">
+          All
+        </button>
+        {
+          presentDomains.map((domain) => (
+            <button type="button" class="chip" data-domain={domain} aria-pressed="false">
+              {DOMAIN_LABELS[domain]}
+            </button>
+          ))
+        }
+      </div>
+    </div>
+
+    <div class="work__grid">
+      {
+        projects.map((project) => (
+          <ProjectCard project={project} featured={project.data.featured} />
+        ))
+      }
+    </div>
+
+    <p class="work__empty" data-empty hidden>Nothing in that category yet.</p>
+
+    <p class="work__more">
+      <a href="https://github.com/MahatmaDev" rel="noopener" target="_blank">
+        The rest is on GitHub
+        <Icon name="arrow-up-right" size={16} />
+      </a>
+    </p>
+  </div>
+</section>
+
+<script>
+  /**
+   * Domain filter. Idempotent so it survives view transitions.
+   */
+  function initWorkFilter(): void {
+    const root = document.querySelector<HTMLElement>('[data-filter]');
+    if (!root || root.dataset.bound) return;
+    root.dataset.bound = 'true';
+
+    const buttons = [...root.querySelectorAll<HTMLButtonElement>('[data-domain]')];
+    const cards = [...document.querySelectorAll<HTMLElement>('[data-project]')];
+    const empty = document.querySelector<HTMLElement>('[data-empty]');
+
+    root.addEventListener('click', (event) => {
+      const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-domain]');
+      if (!button) return;
+
+      const selected = button.dataset.domain ?? 'all';
+
+      for (const other of buttons) {
+        const isActive = other === button;
+        other.classList.toggle('is-active', isActive);
+        other.setAttribute('aria-pressed', String(isActive));
+      }
+
+      let visible = 0;
+      for (const card of cards) {
+        const domains = (card.dataset.domains ?? '').split(' ');
+        const matches = selected === 'all' || domains.includes(selected);
+        card.hidden = !matches;
+        if (matches) visible += 1;
+      }
+
+      if (empty) empty.hidden = visible > 0;
+    });
+  }
+
+  initWorkFilter();
+  document.addEventListener('astro:after-swap', initWorkFilter);
+</script>
+
+<style>
+  .section__head {
+    max-inline-size: 62ch;
+    margin-block-end: var(--space-l);
+  }
+
+  .section__head h2 {
+    margin-block-start: var(--space-2xs);
+  }
+
+  .section__lede {
+    margin-block-start: var(--space-s);
+    font-size: var(--step-0);
+    color: var(--text-secondary);
+  }
+
+  /* ── Filter ────────────────────────────────────────────────────────────*/
+
+  .filter {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-s);
+    margin-block-end: var(--space-m);
+  }
+
+  .filter__label {
+    font-family: var(--font-mono);
+    font-size: var(--step--2);
+    letter-spacing: var(--tracking-caps);
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+  }
+
+  .filter__buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3xs);
+  }
+
+  .chip {
+    padding: var(--space-3xs) var(--space-xs);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-full);
+    background-color: var(--surface-raised);
+    font-size: var(--step--1);
+    color: var(--text-secondary);
+    transition:
+      color var(--duration-fast) var(--ease-out),
+      border-color var(--duration-fast) var(--ease-out),
+      background-color var(--duration-fast) var(--ease-out);
+  }
+
+  .chip:hover {
+    color: var(--text-primary);
+    border-color: var(--border-default);
+  }
+
+  .chip.is-active {
+    background-color: var(--surface-accent-subtle);
+    border-color: var(--border-accent);
+    color: var(--text-accent);
+  }
+
+  /* ── Grid ──────────────────────────────────────────────────────────────*/
+
+  .work__grid {
+    display: grid;
+    gap: var(--space-m);
+    grid-template-columns: 1fr;
+  }
+
+  @media (min-width: 52rem) {
+    .work__grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  .work__empty {
+    padding-block: var(--space-l);
+    text-align: center;
+    color: var(--text-tertiary);
+  }
+
+  .work__more {
+    margin-block-start: var(--space-l);
+    font-size: var(--step--1);
+  }
+
+  .work__more a {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2xs);
+    color: var(--text-secondary);
+    text-decoration: none;
+  }
+
+  .work__more a:hover {
+    color: var(--text-accent);
+  }
+</style>

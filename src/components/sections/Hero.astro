@@ -1,0 +1,292 @@
+---
+/**
+ * Hero.
+ *
+ * Governed by the 15-second rule: a recruiter decides in under a minute, so
+ * name, role, stack, location and availability must all be readable before
+ * any scroll and before any animation finishes. Nothing here waits on JS —
+ * the entrance animation is CSS, and it animates content that is already in
+ * the HTML.
+ */
+import { PROFILE, AVAILABILITY } from '@data/site';
+import Button from '@components/ui/Button.astro';
+import Icon from '@components/ui/Icon.astro';
+
+/** Kept short on purpose. A wall of logos reads as padding. */
+const MARQUEE = [
+  'TypeScript',
+  'Node.js',
+  'NestJS',
+  'PostgreSQL',
+  'React',
+  'React Native',
+  'Kotlin',
+  'Astro',
+  'M-Pesa Daraja',
+  'Firebase',
+];
+---
+
+<section class="hero" aria-labelledby="hero-heading">
+  <div class="hero__grid" aria-hidden="true"></div>
+
+  <div class="container container--wide hero__inner">
+    <p class="availability" data-reveal="1">
+      <span
+        class:list={['availability__dot', AVAILABILITY.open && 'is-open']}
+        aria-hidden="true"></span>
+      {AVAILABILITY.label}
+    </p>
+
+    <h1 id="hero-heading" class="hero__heading" data-reveal="2">
+      {PROFILE.tagline}
+    </h1>
+
+    <p class="hero__subline" data-reveal="3">{PROFILE.subline}</p>
+
+    <dl class="hero__facts" data-reveal="4">
+      <div>
+        <dt>Role</dt>
+        <dd>{PROFILE.role}</dd>
+      </div>
+      <div>
+        <dt>Based in</dt>
+        <dd>{PROFILE.location} · {PROFILE.timezone}</dd>
+      </div>
+      <div>
+        <dt>Studying</dt>
+        <dd>{PROFILE.education.degree}, {PROFILE.education.status}</dd>
+      </div>
+    </dl>
+
+    <div class="hero__actions cluster" data-reveal="5">
+      <Button href="/#work" variant="primary" size="lg" icon="arrow-right">
+        See the work
+      </Button>
+      <Button href={PROFILE.resumePath} variant="secondary" size="lg" icon="resume" download>
+        Download résumé
+      </Button>
+      <a class="hero__mail" href={`mailto:${PROFILE.email}`}>
+        <Icon name="email" size={16} />
+        {PROFILE.email}
+      </a>
+    </div>
+  </div>
+
+  {/* Decorative stack marquee. Duplicated once so the loop has no seam. */}
+  <div class="marquee" data-reveal="6">
+    <div class="marquee__track">
+      {
+        [0, 1].map((pass) => (
+          <ul class="marquee__list" role="list" aria-hidden={pass === 1 ? 'true' : undefined}>
+            {MARQUEE.map((item) => (
+              <li>{item}</li>
+            ))}
+          </ul>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  .hero {
+    position: relative;
+    isolation: isolate;
+    padding-block: var(--space-3xl) var(--space-2xl);
+    overflow: hidden;
+  }
+
+  /* Faint engineering grid, faded out at the edges so it never competes
+     with the text sitting on top of it. */
+  .hero__grid {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background-image:
+      linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+    background-size: 4rem 4rem;
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 30%, transparent 75%);
+  }
+
+  .hero__inner > * + * {
+    margin-block-start: var(--space-m);
+  }
+
+  .availability {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2xs);
+    padding: var(--space-3xs) var(--space-xs);
+    border: 1px solid var(--border-accent);
+    border-radius: var(--radius-full);
+    background-color: var(--surface-accent-subtle);
+    color: var(--text-accent);
+    font-size: var(--step--2);
+    font-weight: var(--weight-medium);
+  }
+
+  .availability__dot {
+    inline-size: 0.5rem;
+    block-size: 0.5rem;
+    border-radius: var(--radius-full);
+    background-color: var(--text-tertiary);
+  }
+
+  .availability__dot.is-open {
+    background-color: var(--c-success);
+    animation: pulse 2.4s var(--ease-out) infinite;
+  }
+
+  @keyframes pulse {
+    0% {
+      box-shadow: 0 0 0 0 color-mix(in oklab, var(--c-success) 60%, transparent);
+    }
+    70% {
+      box-shadow: 0 0 0 0.4rem transparent;
+    }
+    100% {
+      box-shadow: 0 0 0 0 transparent;
+    }
+  }
+
+  .hero__heading {
+    max-inline-size: 20ch;
+    font-size: var(--step-6);
+    letter-spacing: var(--tracking-tight);
+  }
+
+  .hero__subline {
+    max-inline-size: 56ch;
+    font-size: var(--step-1);
+    color: var(--text-secondary);
+  }
+
+  /* ── Facts ─────────────────────────────────────────────────────────────
+     The recruiter's checklist, in a fixed place, above the fold. */
+
+  .hero__facts {
+    display: grid;
+    gap: var(--space-s);
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+    max-inline-size: 52rem;
+    padding-block-start: var(--space-s);
+    border-block-start: 1px solid var(--border-subtle);
+  }
+
+  .hero__facts dt {
+    font-family: var(--font-mono);
+    font-size: var(--step--2);
+    letter-spacing: var(--tracking-caps);
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+  }
+
+  .hero__facts dd {
+    margin: 0;
+    margin-block-start: var(--space-3xs);
+    font-size: var(--step--1);
+    font-weight: var(--weight-medium);
+  }
+
+  .hero__actions {
+    --cluster-gap: var(--space-s);
+  }
+
+  .hero__mail {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2xs);
+    font-family: var(--font-mono);
+    font-size: var(--step--1);
+    color: var(--text-tertiary);
+    text-decoration: none;
+  }
+
+  .hero__mail:hover {
+    color: var(--text-accent);
+  }
+
+  /* ── Marquee ───────────────────────────────────────────────────────────*/
+
+  .marquee {
+    margin-block-start: var(--space-2xl);
+    padding-block: var(--space-s);
+    border-block: 1px solid var(--border-subtle);
+    overflow: hidden;
+    mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+  }
+
+  .marquee__track {
+    display: flex;
+    inline-size: max-content;
+    animation: scroll 42s linear infinite;
+  }
+
+  .marquee__list {
+    display: flex;
+    gap: var(--space-xl);
+    margin: 0;
+    padding-inline: var(--space-l) 0;
+    list-style: none;
+    font-family: var(--font-mono);
+    font-size: var(--step--1);
+    color: var(--text-tertiary);
+    white-space: nowrap;
+  }
+
+  @keyframes scroll {
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .marquee__track {
+      animation: none;
+    }
+    .marquee {
+      overflow-x: auto;
+    }
+  }
+
+  /* ── Entrance ──────────────────────────────────────────────────────────
+     Staggered, but short. The 15-second rule means the hero must be
+     readable almost immediately — total stagger stays under 400ms. */
+
+  @media (prefers-reduced-motion: no-preference) {
+    [data-reveal] {
+      animation: rise var(--duration-slow) var(--ease-out) backwards;
+    }
+    [data-reveal='1'] {
+      animation-delay: 0ms;
+    }
+    [data-reveal='2'] {
+      animation-delay: 60ms;
+    }
+    [data-reveal='3'] {
+      animation-delay: 120ms;
+    }
+    [data-reveal='4'] {
+      animation-delay: 180ms;
+    }
+    [data-reveal='5'] {
+      animation-delay: 240ms;
+    }
+    [data-reveal='6'] {
+      animation-delay: 300ms;
+    }
+  }
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(0.75rem);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+</style>

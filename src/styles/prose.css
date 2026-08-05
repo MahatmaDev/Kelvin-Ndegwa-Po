@@ -1,0 +1,173 @@
+/**
+ * Long-form typography.
+ *
+ * Scoped to `.prose` and applied only to MDX-rendered bodies, where the
+ * markup is generated and cannot carry classes. Everywhere else, components
+ * style their own elements — this is the one place a descendant selector
+ * earns its keep.
+ */
+
+.prose {
+  color: var(--text-secondary);
+  font-size: var(--step-0);
+  line-height: var(--leading-relaxed);
+}
+
+.prose > * + * {
+  margin-block-start: var(--space-s);
+}
+
+/* ══ Headings ════════════════════════════════════════════════════════════ */
+
+.prose h2,
+.prose h3,
+.prose h4 {
+  color: var(--text-primary);
+  scroll-margin-top: calc(var(--header-height, 4rem) + var(--space-m));
+}
+
+.prose h2 {
+  margin-block-start: var(--space-xl);
+  padding-block-start: var(--space-s);
+  border-block-start: 1px solid var(--border-subtle);
+  font-size: var(--step-2);
+}
+
+.prose h3 {
+  margin-block-start: var(--space-l);
+  font-size: var(--step-1);
+}
+
+.prose h4 {
+  margin-block-start: var(--space-m);
+  font-size: var(--step-0);
+  font-weight: var(--weight-semibold);
+}
+
+/* ══ Inline ══════════════════════════════════════════════════════════════ */
+
+.prose strong {
+  color: var(--text-primary);
+  font-weight: var(--weight-semibold);
+}
+
+.prose a {
+  color: var(--text-accent);
+  text-decoration: underline;
+  text-decoration-color: var(--border-accent);
+}
+
+.prose a:hover {
+  text-decoration-color: currentcolor;
+}
+
+/* Inline code. The `:not(pre code)` keeps these rules off code blocks,
+   which Shiki styles itself. */
+.prose :not(pre) > code {
+  padding: 0.15em 0.35em;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xs);
+  background-color: var(--surface-inset);
+  color: var(--text-primary);
+  font-size: 0.875em;
+  overflow-wrap: anywhere;
+}
+
+/* ══ Lists ═══════════════════════════════════════════════════════════════ */
+
+.prose ul,
+.prose ol {
+  padding-inline-start: var(--space-m);
+}
+
+.prose li + li {
+  margin-block-start: var(--space-2xs);
+}
+
+.prose li::marker {
+  color: var(--text-tertiary);
+}
+
+/* ══ Code blocks ═════════════════════════════════════════════════════════
+   Shiki emits both themes and swaps them by CSS variable, so the block
+   follows the site theme without a second highlight pass. */
+
+.prose pre {
+  margin-block: var(--space-m);
+  padding: var(--space-s) var(--space-m);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-m);
+  overflow-x: auto;
+  font-size: var(--step--1);
+  line-height: var(--leading-normal);
+  tab-size: 2;
+}
+
+:root[data-theme='dark'] .prose .astro-code,
+:root[data-theme='dark'] .prose .astro-code span {
+  color: var(--shiki-dark) !important;
+  background-color: var(--shiki-dark-bg) !important;
+  font-style: var(--shiki-dark-font-style) !important;
+  font-weight: var(--shiki-dark-font-weight) !important;
+  text-decoration: var(--shiki-dark-text-decoration) !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .prose .astro-code,
+  :root:not([data-theme]) .prose .astro-code span {
+    color: var(--shiki-dark) !important;
+    background-color: var(--shiki-dark-bg) !important;
+    font-style: var(--shiki-dark-font-style) !important;
+    font-weight: var(--shiki-dark-font-weight) !important;
+    text-decoration: var(--shiki-dark-text-decoration) !important;
+  }
+}
+
+/* ══ Blocks ══════════════════════════════════════════════════════════════ */
+
+.prose blockquote {
+  margin-block: var(--space-m);
+  padding-inline-start: var(--space-m);
+  border-inline-start: 3px solid var(--border-accent);
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+.prose hr {
+  margin-block: var(--space-xl);
+}
+
+.prose img {
+  border-radius: var(--radius-m);
+  border: 1px solid var(--border-subtle);
+}
+
+.prose figcaption {
+  margin-block-start: var(--space-2xs);
+  font-size: var(--step--2);
+  color: var(--text-tertiary);
+  text-align: center;
+}
+
+/* Tables scroll inside their own box rather than widening the page. */
+.prose table {
+  display: block;
+  width: 100%;
+  margin-block: var(--space-m);
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: var(--step--1);
+}
+
+.prose th,
+.prose td {
+  padding: var(--space-2xs) var(--space-xs);
+  border: 1px solid var(--border-subtle);
+  text-align: start;
+}
+
+.prose th {
+  background-color: var(--surface-raised);
+  color: var(--text-primary);
+  font-weight: var(--weight-semibold);
+}

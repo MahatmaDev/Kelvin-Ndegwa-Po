@@ -1,0 +1,176 @@
+---
+/**
+ * Latest writing.
+ *
+ * Renders nothing at all when there are no published posts. An empty
+ * "Coming soon" section is worse than no section — it advertises an
+ * intention rather than a body of work.
+ */
+import { getCollection } from 'astro:content';
+import Icon from '@components/ui/Icon.astro';
+import { formatDate } from '@lib/format';
+
+const posts = (await getCollection('posts', ({ data }) => !data.draft))
+  .sort((a, b) => b.data.publishedAt.getTime() - a.data.publishedAt.getTime())
+  .slice(0, 3);
+---
+
+{
+  posts.length > 0 && (
+    <section id="writing" class="section" aria-labelledby="writing-heading">
+      <div class="container container--wide">
+        <header class="section__head">
+          <p class="eyebrow">Writing</p>
+          <h2 id="writing-heading">Notes from the build.</h2>
+          <p class="section__lede">
+            Specific problems, real code, and the hypotheses that turned out to be wrong. No
+            listicles.
+          </p>
+        </header>
+
+        <ul class="posts" role="list">
+          {posts.map((post) => (
+            <li class="post">
+              <p class="post__date">
+                <time datetime={post.data.publishedAt.toISOString()}>
+                  {formatDate(post.data.publishedAt)}
+                </time>
+              </p>
+              <h3 class="post__title">
+                <a href={`/writing/${post.id}/`}>{post.data.title}</a>
+              </h3>
+              <p class="post__description">{post.data.description}</p>
+              {post.data.tags.length > 0 && (
+                <ul class="post__tags" role="list">
+                  {post.data.tags.slice(0, 4).map((tag) => (
+                    <li>{tag}</li>
+                  ))}
+                </ul>
+              )}
+            </li>
+          ))}
+        </ul>
+
+        <p class="posts__more">
+          <a href="/writing/">
+            All writing
+            <Icon name="arrow-right" size={16} />
+          </a>
+        </p>
+      </div>
+    </section>
+  )
+}
+
+<style>
+  .section__head {
+    max-inline-size: 62ch;
+    margin-block-end: var(--space-l);
+  }
+
+  .section__head h2 {
+    margin-block-start: var(--space-2xs);
+  }
+
+  .section__lede {
+    margin-block-start: var(--space-s);
+    color: var(--text-secondary);
+  }
+
+  .posts {
+    display: grid;
+    gap: var(--space-m);
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .post {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2xs);
+    padding: var(--space-m);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-l);
+    background-color: var(--surface-raised);
+    transition:
+      border-color var(--duration-base) var(--ease-out),
+      transform var(--duration-base) var(--ease-out);
+  }
+
+  .post:hover {
+    border-color: var(--border-accent);
+    transform: translateY(-2px);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .post:hover {
+      transform: none;
+    }
+  }
+
+  .post__date {
+    font-family: var(--font-mono);
+    font-size: var(--step--2);
+    letter-spacing: var(--tracking-wide);
+    color: var(--text-tertiary);
+  }
+
+  .post__title {
+    font-size: var(--step-1);
+  }
+
+  .post__title a {
+    text-decoration: none;
+  }
+
+  .post__title a::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+  }
+
+  .post__description {
+    font-size: var(--step--1);
+    color: var(--text-secondary);
+  }
+
+  .post__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3xs);
+    margin: 0;
+    margin-block-start: auto;
+    padding-block-start: var(--space-2xs);
+    list-style: none;
+  }
+
+  .post__tags li {
+    padding: 0.15rem var(--space-2xs);
+    border-radius: var(--radius-full);
+    background-color: var(--surface-inset);
+    font-family: var(--font-mono);
+    font-size: var(--step--2);
+    color: var(--text-tertiary);
+  }
+
+  .posts__more {
+    margin-block-start: var(--space-l);
+    font-size: var(--step--1);
+  }
+
+  .posts__more a {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2xs);
+    color: var(--text-accent);
+    text-decoration: none;
+  }
+
+  .posts__more a:hover {
+    text-decoration: underline;
+  }
+</style>

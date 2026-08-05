@@ -1,0 +1,208 @@
+---
+/**
+ * Site footer.
+ *
+ * Doubles as a last call to action: someone who has scrolled this far is
+ * the most interested visitor on the page, so the contact route and the
+ * availability status are repeated here rather than left behind at the top.
+ */
+import { PROFILE, SOCIALS, NAV_ITEMS, AVAILABILITY } from '@data/site';
+import Icon from '@components/ui/Icon.astro';
+
+const year = new Date().getFullYear();
+---
+
+<footer class="site-footer">
+  <div class="container container--wide">
+    <div class="site-footer__grid">
+      <div class="site-footer__identity">
+        <a href="/" class="site-footer__name">{PROFILE.name}</a>
+        <p class="site-footer__tagline">{PROFILE.tagline}</p>
+
+        {
+          AVAILABILITY.open && (
+            <p class="availability">
+              <span class="availability__dot" aria-hidden="true" />
+              {AVAILABILITY.label}
+            </p>
+          )
+        }
+      </div>
+
+      <nav class="site-footer__nav" aria-label="Footer">
+        <h2 class="site-footer__heading">Navigate</h2>
+        <ul role="list">
+          {
+            NAV_ITEMS.map((item) => (
+              <li>
+                <a href={item.href}>{item.label}</a>
+              </li>
+            ))
+          }
+        </ul>
+      </nav>
+
+      <div class="site-footer__nav">
+        <h2 class="site-footer__heading">Elsewhere</h2>
+        <ul role="list">
+          {
+            SOCIALS.map((social) => (
+              <li>
+                <a
+                  href={social.href}
+                  rel={social.href.startsWith('http') ? 'me noopener' : undefined}
+                  target={social.href.startsWith('http') ? '_blank' : undefined}
+                >
+                  <Icon name={social.icon} size={15} />
+                  {social.label}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+    </div>
+
+    <div class="site-footer__base">
+      <p>© {year} {PROFILE.name}</p>
+      <p class="site-footer__colophon">
+        Built with Astro, TypeScript and React. <a
+          href="https://github.com/MahatmaDev/Capstone-Project"
+          rel="noopener"
+          target="_blank">Source on GitHub</a
+        >.
+      </p>
+      <p class="site-footer__location">
+        {PROFILE.location} · {PROFILE.timezone}
+      </p>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    margin-block-start: var(--space-3xl);
+    padding-block: var(--space-2xl) var(--space-l);
+    border-block-start: 1px solid var(--border-subtle);
+    background-color: var(--surface-raised);
+    font-size: var(--step--1);
+  }
+
+  .site-footer__grid {
+    display: grid;
+    gap: var(--space-xl);
+    grid-template-columns: 1fr;
+  }
+
+  @media (min-width: 48rem) {
+    .site-footer__grid {
+      grid-template-columns: 2fr 1fr 1fr;
+      gap: var(--space-l);
+    }
+  }
+
+  .site-footer__name {
+    font-size: var(--step-1);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-snug);
+    text-decoration: none;
+  }
+
+  .site-footer__tagline {
+    margin-block-start: var(--space-2xs);
+    max-inline-size: 42ch;
+    color: var(--text-secondary);
+  }
+
+  .availability {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2xs);
+    margin-block-start: var(--space-s);
+    padding: var(--space-3xs) var(--space-xs);
+    border: 1px solid var(--border-accent);
+    border-radius: var(--radius-full);
+    background-color: var(--surface-accent-subtle);
+    color: var(--text-accent);
+    font-size: var(--step--2);
+    font-weight: var(--weight-medium);
+  }
+
+  .availability__dot {
+    inline-size: 0.5rem;
+    block-size: 0.5rem;
+    border-radius: var(--radius-full);
+    background-color: var(--c-success);
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--c-success) 60%, transparent);
+    animation: availability-pulse 2.4s var(--ease-out) infinite;
+  }
+
+  @keyframes availability-pulse {
+    0% {
+      box-shadow: 0 0 0 0 color-mix(in oklab, var(--c-success) 60%, transparent);
+    }
+    70% {
+      box-shadow: 0 0 0 0.4rem transparent;
+    }
+    100% {
+      box-shadow: 0 0 0 0 transparent;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .availability__dot {
+      animation: none;
+    }
+  }
+
+  .site-footer__heading {
+    font-size: var(--step--2);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-caps);
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    margin-block-end: var(--space-xs);
+  }
+
+  .site-footer__nav ul {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2xs);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .site-footer__nav a {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2xs);
+    color: var(--text-secondary);
+    text-decoration: none;
+  }
+
+  .site-footer__nav a:hover {
+    color: var(--text-accent);
+  }
+
+  .site-footer__base {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-xs);
+    margin-block-start: var(--space-xl);
+    padding-block-start: var(--space-m);
+    border-block-start: 1px solid var(--border-subtle);
+    color: var(--text-tertiary);
+    font-size: var(--step--2);
+  }
+
+  .site-footer__colophon a {
+    color: var(--text-secondary);
+  }
+
+  .site-footer__location {
+    font-family: var(--font-mono);
+  }
+</style>

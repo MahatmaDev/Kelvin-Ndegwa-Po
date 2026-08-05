@@ -1,0 +1,515 @@
+---
+/**
+ * Site header — sticky, scroll-aware, with a mobile drawer.
+ *
+ * The drawer is built on the native <dialog> element rather than a
+ * hand-rolled overlay: the platform gives us the focus trap, inert
+ * background, Escape-to-close, and correct ARIA semantics for free. Those
+ * are precisely the four things custom modals get wrong.
+ *
+ * Only the theme toggle is a React island. Navigation must work before
+ * hydration — a menu that needs JavaScript to open is a menu that is broken
+ * on a slow connection.
+ */
+import { NAV_ITEMS, SOCIALS, PROFILE } from '@data/site';
+import Icon from '@components/ui/Icon.astro';
+import ThemeToggle from '@components/islands/ThemeToggle.tsx';
+
+const primarySocials = SOCIALS.filter((s) => s.primary);
+---
+
+<header class="site-header" data-header>
+  <div class="site-header__inner container container--wide">
+    <a href="/" class="brand" aria-label={`${PROFILE.name} — home`}>
+      <span class="brand__mark" aria-hidden="true">KN</span>
+      <span class="brand__text">
+        <span class="brand__name">{PROFILE.firstName} Ndegwa</span>
+        <span class="brand__role">{PROFILE.role}</span>
+      </span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <ul class="nav__list" role="list">
+        {
+          NAV_ITEMS.map((item) => (
+            <li>
+              <a href={item.href} class="nav__link">
+                {item.label}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+
+    <div class="site-header__actions">
+      <ul class="social-row" role="list">
+        {
+          primarySocials.map((social) => (
+            <li>
+              <a
+                href={social.href}
+                class="icon-button"
+                aria-label={social.label}
+                rel={social.href.startsWith('http') ? 'me noopener' : undefined}
+                target={social.href.startsWith('http') ? '_blank' : undefined}
+              >
+                <Icon name={social.icon} size={18} />
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+
+      <ThemeToggle client:load />
+
+      <button
+        type="button"
+        class="icon-button menu-button"
+        aria-label="Open menu"
+        aria-haspopup="dialog"
+        data-menu-open
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.75"
+          stroke-linecap="round"
+          aria-hidden="true"
+        >
+          <path d="M3 6h18M3 12h18M3 18h18"></path>
+        </svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+{/* Mobile drawer. Native <dialog> — focus trap and Escape handled by the platform. */}
+<dialog class="drawer" data-drawer aria-label="Site menu">
+  <div class="drawer__panel">
+    <div class="drawer__head">
+      <span class="eyebrow">Menu</span>
+      <button type="button" class="icon-button" aria-label="Close menu" data-menu-close>
+        <Icon name="close" size={20} />
+      </button>
+    </div>
+
+    <nav aria-label="Mobile">
+      <ul class="drawer__list" role="list">
+        {
+          NAV_ITEMS.map((item) => (
+            <li>
+              <a href={item.href} class="drawer__link" data-drawer-link>
+                {item.label}
+                <Icon name="arrow-up-right" size={18} />
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+
+    <div class="drawer__foot">
+      <ul class="social-row" role="list">
+        {
+          SOCIALS.map((social) => (
+            <li>
+              <a
+                href={social.href}
+                class="icon-button"
+                aria-label={social.label}
+                rel={social.href.startsWith('http') ? 'me noopener' : undefined}
+                target={social.href.startsWith('http') ? '_blank' : undefined}
+              >
+                <Icon name={social.icon} size={18} />
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </div>
+</dialog>
+
+<script>
+  /**
+   * Header behaviour: scroll state + mobile drawer.
+   *
+   * Written as a single idempotent init so it survives Astro view
+   * transitions, which re-run scripts against a fresh document.
+   */
+  function initHeader(): void {
+    const header = document.querySelector<HTMLElement>('[data-header]');
+    const drawer = document.querySelector<HTMLDialogElement>('[data-drawer]');
+    const openBtn = document.querySelector<HTMLButtonElement>('[data-menu-open]');
+    const closeBtn = document.querySelector<HTMLButtonElement>('[data-menu-close]');
+
+    /* ── Scroll state ──────────────────────────────────────────────────
+       An IntersectionObserver on a zero-height sentinel rather than a
+       scroll listener: the callback fires twice for the whole page life
+       instead of on every frame, and it never runs on the main thread
+       during a scroll. */
+    if (header && !header.dataset.scrollBound) {
+      header.dataset.scrollBound = 'true';
+
+      const sentinel = document.createElement('div');
+      sentinel.setAttribute('aria-hidden', 'true');
+      sentinel.style.cssText = 'position:absolute;top:0;height:1px;width:1px;';
+      document.body.prepend(sentinel);
+
+      new IntersectionObserver(
+        ([entry]) => {
+          if (entry) header.classList.toggle('is-scrolled', !entry.isIntersecting);
+        },
+        { threshold: 0 },
+      ).observe(sentinel);
+    }
+
+    /* ── Drawer ────────────────────────────────────────────────────────── */
+    if (drawer && openBtn && !drawer.dataset.bound) {
+      drawer.dataset.bound = 'true';
+
+      const open = () => {
+        drawer.showModal();
+        document.body.style.overflow = 'hidden';
+      };
+
+      const close = () => {
+        drawer.classList.add('is-closing');
+        const finish = () => {
+          drawer.classList.remove('is-closing');
+          drawer.close();
+          document.body.style.overflow = '';
+        };
+        /* Wait for the exit animation, but never hang if it is disabled by
+           prefers-reduced-motion — hence the timeout as a floor. */
+        const panel = drawer.querySelector('.drawer__panel');
+        if (panel && matchMedia('(prefers-reduced-motion: no-preference)').matches) {
+          panel.addEventListener('animationend', finish, { once: true });
+          setTimeout(finish, 400);
+        } else {
+          finish();
+        }
+      };
+
+      openBtn.addEventListener('click', open);
+      closeBtn?.addEventListener('click', close);
+
+      /* Click on the backdrop (the dialog itself, outside the panel). */
+      drawer.addEventListener('click', (event) => {
+        if (event.target === drawer) close();
+      });
+
+      /* Intercept Escape so the exit animation can play. */
+      drawer.addEventListener('cancel', (event) => {
+        event.preventDefault();
+        close();
+      });
+
+      /* Event delegation — one listener for every link, now and later. */
+      drawer.addEventListener('click', (event) => {
+        const link = (event.target as HTMLElement).closest('[data-drawer-link]');
+        if (link) close();
+      });
+
+      /* Close if the viewport grows past the mobile breakpoint while open. */
+      matchMedia('(min-width: 60rem)').addEventListener('change', (event) => {
+        if (event.matches && drawer.open) close();
+      });
+    }
+  }
+
+  initHeader();
+  document.addEventListener('astro:after-swap', initHeader);
+</script>
+
+<style>
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: var(--z-header);
+    /* Published so `scroll-padding-top` in global.css can offset anchors. */
+    --header-height: 4.25rem;
+    background-color: color-mix(in oklab, var(--surface-base) 72%, transparent);
+    border-block-end: 1px solid transparent;
+    transition:
+      background-color var(--duration-base) var(--ease-out),
+      border-color var(--duration-base) var(--ease-out),
+      backdrop-filter var(--duration-base) var(--ease-out);
+  }
+
+  @supports (backdrop-filter: blur(1px)) {
+    .site-header {
+      backdrop-filter: blur(12px) saturate(150%);
+    }
+  }
+
+  .site-header.is-scrolled {
+    background-color: color-mix(in oklab, var(--surface-base) 88%, transparent);
+    border-block-end-color: var(--border-subtle);
+  }
+
+  .site-header__inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-m);
+    min-height: var(--header-height);
+  }
+
+  /* ── Brand ─────────────────────────────────────────────────────────── */
+
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2xs);
+    text-decoration: none;
+    flex-shrink: 0;
+  }
+
+  .brand:hover {
+    color: inherit;
+  }
+
+  .brand__mark {
+    display: grid;
+    place-items: center;
+    inline-size: 2.25rem;
+    block-size: 2.25rem;
+    border-radius: var(--radius-s);
+    background: linear-gradient(135deg, var(--accent), var(--c-accent-600));
+    color: var(--on-accent);
+    font-family: var(--font-mono);
+    font-size: var(--step--1);
+    font-weight: var(--weight-bold);
+    letter-spacing: var(--tracking-tight);
+    transition: box-shadow var(--duration-base) var(--ease-out);
+  }
+
+  .brand:hover .brand__mark {
+    box-shadow: var(--shadow-glow);
+  }
+
+  .brand__text {
+    display: none;
+    flex-direction: column;
+    line-height: 1.2;
+  }
+
+  .brand__name {
+    font-weight: var(--weight-semibold);
+    font-size: var(--step--1);
+    letter-spacing: var(--tracking-snug);
+  }
+
+  .brand__role {
+    font-size: var(--step--2);
+    color: var(--text-tertiary);
+  }
+
+  @media (min-width: 26rem) {
+    .brand__text {
+      display: flex;
+    }
+  }
+
+  /* ── Nav ───────────────────────────────────────────────────────────── */
+
+  .nav {
+    display: none;
+  }
+
+  .nav__list {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3xs);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .nav__link {
+    display: inline-block;
+    padding: var(--space-3xs) var(--space-2xs);
+    border-radius: var(--radius-s);
+    font-size: var(--step--1);
+    font-weight: var(--weight-medium);
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition:
+      color var(--duration-fast) var(--ease-out),
+      background-color var(--duration-fast) var(--ease-out);
+  }
+
+  .nav__link:hover {
+    color: var(--text-primary);
+    background-color: var(--surface-raised);
+  }
+
+  /* ── Actions ───────────────────────────────────────────────────────── */
+
+  .site-header__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3xs);
+  }
+
+  .social-row {
+    display: none;
+    align-items: center;
+    gap: var(--space-3xs);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .icon-button {
+    display: grid;
+    place-items: center;
+    inline-size: 2.25rem;
+    block-size: 2.25rem;
+    border-radius: var(--radius-s);
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition:
+      color var(--duration-fast) var(--ease-out),
+      background-color var(--duration-fast) var(--ease-out);
+  }
+
+  .icon-button:hover {
+    color: var(--text-primary);
+    background-color: var(--surface-raised);
+  }
+
+  @media (min-width: 60rem) {
+    .nav,
+    .social-row {
+      display: flex;
+    }
+
+    .menu-button {
+      display: none;
+    }
+
+    /* Separator between the icon row and the theme toggle. */
+    .social-row {
+      padding-inline-end: var(--space-3xs);
+      margin-inline-end: var(--space-3xs);
+      border-inline-end: 1px solid var(--border-subtle);
+    }
+  }
+
+  /* ── Drawer ────────────────────────────────────────────────────────── */
+
+  .drawer {
+    margin: 0 0 0 auto;
+    padding: 0;
+    max-inline-size: min(22rem, 88vw);
+    inline-size: 100%;
+    max-block-size: 100dvh;
+    block-size: 100dvh;
+    border: none;
+    background: transparent;
+    color: var(--text-primary);
+    overflow: hidden;
+  }
+
+  .drawer::backdrop {
+    background-color: oklch(0% 0 0 / 0.55);
+    backdrop-filter: blur(3px);
+    animation: fade-in var(--duration-base) var(--ease-out);
+  }
+
+  .drawer.is-closing::backdrop {
+    animation: fade-in var(--duration-base) var(--ease-out) reverse;
+  }
+
+  .drawer__panel {
+    display: flex;
+    flex-direction: column;
+    block-size: 100%;
+    padding: var(--space-m) var(--space-s);
+    background-color: var(--surface-raised);
+    border-inline-start: 1px solid var(--border-subtle);
+    animation: slide-in var(--duration-slow) var(--ease-out);
+  }
+
+  .drawer.is-closing .drawer__panel {
+    animation: slide-in var(--duration-base) var(--ease-in-out) reverse;
+  }
+
+  .drawer__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-block-end: var(--space-m);
+  }
+
+  .drawer__list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3xs);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .drawer__link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-xs) var(--space-2xs);
+    border-radius: var(--radius-m);
+    font-size: var(--step-1);
+    font-weight: var(--weight-medium);
+    text-decoration: none;
+    color: var(--text-secondary);
+    transition:
+      color var(--duration-fast) var(--ease-out),
+      background-color var(--duration-fast) var(--ease-out);
+  }
+
+  .drawer__link:hover {
+    color: var(--text-primary);
+    background-color: var(--surface-overlay);
+  }
+
+  .drawer__foot {
+    margin-block-start: auto;
+    padding-block-start: var(--space-m);
+    border-block-start: 1px solid var(--border-subtle);
+  }
+
+  .drawer__foot .social-row {
+    display: flex;
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes slide-in {
+    from {
+      transform: translateX(100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .drawer__panel,
+    .drawer::backdrop {
+      animation: none;
+    }
+  }
+</style>

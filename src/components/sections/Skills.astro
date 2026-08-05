@@ -1,0 +1,144 @@
+---
+/**
+ * Skills, grouped by domain.
+ *
+ * Explicitly not percentage bars. "TypeScript 85%" is unfalsifiable, tells a
+ * reviewer nothing, and reads as inexperience. Each domain instead carries a
+ * one-line claim about how I work in it, and — where one exists — a link to
+ * the case study that demonstrates the claim.
+ */
+import { SKILL_DOMAINS } from '@data/site';
+import { getCollection } from 'astro:content';
+import Icon from '@components/ui/Icon.astro';
+
+/* Resolve evidence slugs to real projects so a renamed case study cannot
+   leave a dead link behind. */
+const projects = await getCollection('projects', ({ data }) => !data.draft);
+const titleBySlug = new Map(projects.map((project) => [project.id, project.data.title]));
+---
+
+<section id="skills" class="section" aria-labelledby="skills-heading">
+  <div class="container container--wide">
+    <header class="section__head">
+      <p class="eyebrow">Capabilities</p>
+      <h2 id="skills-heading">What I work with, and what proves it.</h2>
+      <p class="section__lede">
+        Grouped by domain rather than scored out of ten. Where a project demonstrates a domain,
+        it is linked — a claim with evidence attached is worth more than a claim with a progress
+        bar attached.
+      </p>
+    </header>
+
+    <ul class="skills" role="list">
+      {
+        SKILL_DOMAINS.map((domain) => {
+          const evidenceTitle = domain.evidence ? titleBySlug.get(domain.evidence) : undefined;
+
+          return (
+            <li class="domain">
+              <h3 class="domain__name">{domain.name}</h3>
+              <p class="domain__summary">{domain.summary}</p>
+
+              <ul class="domain__skills" role="list">
+                {domain.skills.map((skill) => (
+                  <li>{skill}</li>
+                ))}
+              </ul>
+
+              {evidenceTitle && (
+                <a class="domain__evidence" href={`/work/${domain.evidence}/`}>
+                  <Icon name="check" size={14} />
+                  Demonstrated in {evidenceTitle}
+                </a>
+              )}
+            </li>
+          );
+        })
+      }
+    </ul>
+  </div>
+</section>
+
+<style>
+  .section__head {
+    max-inline-size: 62ch;
+    margin-block-end: var(--space-l);
+  }
+
+  .section__head h2 {
+    margin-block-start: var(--space-2xs);
+  }
+
+  .section__lede {
+    margin-block-start: var(--space-s);
+    color: var(--text-secondary);
+  }
+
+  .skills {
+    display: grid;
+    gap: var(--space-m);
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .domain {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    padding: var(--space-m);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-l);
+    background-color: var(--surface-raised);
+    transition: border-color var(--duration-base) var(--ease-out);
+  }
+
+  .domain:hover {
+    border-color: var(--border-default);
+  }
+
+  .domain__name {
+    font-size: var(--step-1);
+    letter-spacing: var(--tracking-snug);
+  }
+
+  .domain__summary {
+    font-size: var(--step--1);
+    color: var(--text-secondary);
+  }
+
+  .domain__skills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3xs);
+    margin: 0;
+    margin-block-start: auto;
+    padding: 0;
+    list-style: none;
+  }
+
+  .domain__skills li {
+    padding: 0.15rem var(--space-2xs);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-full);
+    background-color: var(--surface-inset);
+    font-family: var(--font-mono);
+    font-size: var(--step--2);
+    color: var(--text-tertiary);
+  }
+
+  .domain__evidence {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2xs);
+    padding-block-start: var(--space-2xs);
+    font-size: var(--step--2);
+    color: var(--text-accent);
+    text-decoration: none;
+  }
+
+  .domain__evidence:hover {
+    text-decoration: underline;
+  }
+</style>

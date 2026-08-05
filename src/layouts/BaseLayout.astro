@@ -1,0 +1,49 @@
+---
+/**
+ * The single page shell. Every route renders through this.
+ *
+ * Props are forwarded straight to BaseHead so a page only ever declares
+ * what makes it different — its title, description, and social image —
+ * and never has to remember the boilerplate.
+ */
+import BaseHead from '@components/layout/BaseHead.astro';
+import Header from '@components/layout/Header.astro';
+import Footer from '@components/layout/Footer.astro';
+import { SITE } from '@data/site';
+
+import type { ComponentProps } from 'astro/types';
+
+type HeadProps = ComponentProps<typeof BaseHead>;
+
+interface Props extends HeadProps {
+  /** Adds a top offset for pages that do not open with a full-bleed hero. */
+  padded?: boolean;
+}
+
+const { padded = false, ...head } = Astro.props;
+---
+
+<!doctype html>
+<html lang={SITE.locale} dir="ltr">
+  <head>
+    <BaseHead {...head} />
+  </head>
+
+  <body>
+    <a href="#main" class="skip-link">Skip to content</a>
+
+    <Header />
+
+    <main id="main" class:list={[padded && 'main--padded']}>
+      <slot />
+    </main>
+
+    <Footer />
+  </body>
+</html>
+
+<style>
+  .main--padded {
+    padding-block-start: var(--space-2xl);
+  }
+</style>

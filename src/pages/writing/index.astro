@@ -1,0 +1,182 @@
+---
+/**
+ * Writing index.
+ */
+import { getCollection } from 'astro:content';
+import BaseLayout from '@layouts/BaseLayout.astro';
+import Icon from '@components/ui/Icon.astro';
+import { formatDate } from '@lib/format';
+
+const posts = (await getCollection('posts', ({ data }) => !data.draft)).sort(
+  (a, b) => b.data.publishedAt.getTime() - a.data.publishedAt.getTime(),
+);
+---
+
+<BaseLayout
+  title="Writing"
+  description="Build-in-public teardowns, debugging stories, and architecture decisions — specific problems with real code."
+  padded
+>
+  <div class="container container--wide">
+    <header class="page-head">
+      <p class="eyebrow">Writing</p>
+      <h1>Notes from the build</h1>
+      <p class="page-head__lede">
+        Build-in-public teardowns, debugging stories, and architecture decisions I would defend.
+        One post a month is the honest cadence — six good ones beat sixty thin ones.
+      </p>
+      <p class="page-head__feed">
+        <a href="/rss.xml">
+          Subscribe by RSS
+          <Icon name="arrow-up-right" size={15} />
+        </a>
+      </p>
+    </header>
+
+    {
+      posts.length === 0 ? (
+        <p class="empty">Nothing published yet.</p>
+      ) : (
+        <ul class="list" role="list">
+          {posts.map((post) => (
+            <li class="entry">
+              <p class="entry__date">
+                <time datetime={post.data.publishedAt.toISOString()}>
+                  {formatDate(post.data.publishedAt)}
+                </time>
+              </p>
+
+              <div>
+                <h2 class="entry__title">
+                  <a href={`/writing/${post.id}/`}>{post.data.title}</a>
+                </h2>
+                <p class="entry__description">{post.data.description}</p>
+                {post.data.tags.length > 0 && (
+                  <ul class="entry__tags" role="list">
+                    {post.data.tags.map((tag) => (
+                      <li>{tag}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+  </div>
+</BaseLayout>
+
+<style>
+  .page-head {
+    max-inline-size: 62ch;
+    margin-block-end: var(--space-xl);
+  }
+
+  .page-head h1 {
+    margin-block-start: var(--space-2xs);
+    font-size: var(--step-5);
+  }
+
+  .page-head__lede {
+    margin-block-start: var(--space-s);
+    font-size: var(--step-1);
+    color: var(--text-secondary);
+  }
+
+  .page-head__feed {
+    margin-block-start: var(--space-s);
+    font-size: var(--step--1);
+  }
+
+  .page-head__feed a {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2xs);
+    color: var(--text-accent);
+    text-decoration: none;
+  }
+
+  .page-head__feed a:hover {
+    text-decoration: underline;
+  }
+
+  .list {
+    display: grid;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .entry {
+    position: relative;
+    display: grid;
+    gap: var(--space-2xs);
+    grid-template-columns: 1fr;
+    padding-block: var(--space-m);
+    border-block-start: 1px solid var(--border-subtle);
+  }
+
+  .entry:last-child {
+    border-block-end: 1px solid var(--border-subtle);
+  }
+
+  @media (min-width: 48rem) {
+    .entry {
+      grid-template-columns: 12rem 1fr;
+      gap: var(--space-m);
+    }
+  }
+
+  .entry__date {
+    font-family: var(--font-mono);
+    font-size: var(--step--2);
+    letter-spacing: var(--tracking-wide);
+    color: var(--text-tertiary);
+    padding-block-start: 0.35em;
+  }
+
+  .entry__title {
+    font-size: var(--step-2);
+  }
+
+  .entry__title a {
+    text-decoration: none;
+  }
+
+  .entry__title a::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+  }
+
+  .entry__description {
+    margin-block-start: var(--space-2xs);
+    max-inline-size: 68ch;
+    color: var(--text-secondary);
+  }
+
+  .entry__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3xs);
+    margin: 0;
+    margin-block-start: var(--space-xs);
+    padding: 0;
+    list-style: none;
+  }
+
+  .entry__tags li {
+    padding: 0.15rem var(--space-2xs);
+    border-radius: var(--radius-full);
+    background-color: var(--surface-inset);
+    font-family: var(--font-mono);
+    font-size: var(--step--2);
+    color: var(--text-tertiary);
+  }
+
+  .empty {
+    color: var(--text-tertiary);
+  }
+</style>

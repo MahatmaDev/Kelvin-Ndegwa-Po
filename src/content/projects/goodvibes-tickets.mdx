@@ -1,0 +1,131 @@
+---
+title: GoodVibes Tickets
+tagline: Event ticketing with M-Pesa checkout and QR validation at the gate.
+summary: >-
+  A ticketing platform for live events in Kenya: M-Pesa STK Push checkout, an order
+  state machine that survives the asynchronous callback, and signed QR tickets that
+  can be validated at a gate with intermittent connectivity. The hard part was never
+  the UI — it was making sure one payment produces exactly one ticket.
+role: Sole engineer — schema, backend, payments integration, admin interface
+timeline: 2025 — present
+status: in-development
+stack:
+  - TypeScript
+  - NestJS
+  - PostgreSQL
+  - Supabase
+  - M-Pesa Daraja API
+  - Next.js
+domains:
+  - backend
+  - payments
+  - data
+highlights:
+  - Server-authoritative pricing — the client never sends an amount, only a ticket-type id
+  - Idempotent payment callbacks, so a retried Safaricom webhook cannot issue a second ticket
+  - Order state machine with explicit terminal states instead of a boolean `paid` flag
+  - Ticket validity enforced by a database constraint, not by application code
+links: {}
+featured: true
+order: 1
+draft: false
+---
+
+import Callout from '@components/ui/Callout.astro';
+
+<Callout variant="draft">
+This case study was drafted from the stack declared in `src/data/site.ts`. The architecture
+narrative below reflects how the system is designed; **the numbers, dates and outcomes are
+placeholders**. Before this page is published, confirm: the live URL and repo link, the real
+timeline, ticket/transaction volume if any, whether the M-Pesa integration runs against the
+sandbox or production Daraja credentials, and whether the gate scanner is built yet.
+</Callout>
+
+## The problem
+
+Selling event tickets in Kenya means selling through M-Pesa, and M-Pesa's STK Push is
+asynchronous. You ask Safaricom to prompt the customer's phone; the customer types their PIN
+somewhere you cannot see; and some time later — usually seconds, occasionally minutes, sometimes
+never — Safaricom posts a callback to your server telling you what happened.
+
+Everything difficult about this system follows from that one fact. The user is staring at a
+loading spinner in a state you do not yet know. Safaricom may deliver the callback twice. It
+may deliver it after your request has already timed out. The customer may have been debited
+while your application believes the order failed.
+
+A ticketing system that gets this wrong either issues two tickets for one payment or takes
+money without issuing anything. Both are worse than not shipping.
+
+## Architecture
+
+Three components, deliberately separated by trust boundary:
+
+- **A Next.js storefront** that knows about events and ticket types but never about money. It
+  can start a checkout; it cannot influence what that checkout costs.
+- **A NestJS API** that owns the order lifecycle, talks to Daraja, receives callbacks, and is
+  the only thing permitted to mint a ticket.
+- **PostgreSQL (via Supabase)** holding the constraints. Row-level security so a customer can
+  read their own orders and nothing else, and check constraints so an invalid state transition
+  fails at the database rather than being caught — or not caught — in a service method.
+
+### Server-authoritative pricing
+
+The checkout request carries a ticket-type id and a quantity. It does not carry a price. The
+server looks the price up, computes the total, and that number is the only one that ever reaches
+Daraja.
+
+This sounds obvious. It is also the single most common vulnerability in small commerce
+integrations, where the amount is posted from a form field the user can edit in DevTools.
+
+<Callout variant="decision" title="Decision: state machine, not a boolean">
+An order is `pending → awaiting_payment → paid → fulfilled`, with `failed`, `cancelled` and
+`expired` as terminal states. Every transition is a single SQL `UPDATE` guarded by a `WHERE`
+clause naming the expected current state.
+
+The alternative — a `paid` boolean — cannot distinguish "the user abandoned the STK prompt"
+from "Safaricom has not called us back yet", and those two states need completely different
+handling. The boolean is less code on day one and unfixable on day ninety.
+</Callout>
+
+### Idempotency
+
+Safaricom's callback carries a `CheckoutRequestID`. That value is a unique column on the
+payments table, and callback handling begins by inserting it.
+
+If the insert violates the unique constraint, the callback is a duplicate: log it, return `200`,
+do nothing else. Returning `200` matters — a non-2xx response asks Safaricom to retry, which
+turns a duplicate into a retry storm.
+
+The guarantee is therefore held by the database, not by an `if (alreadyProcessed)` check in
+application code that two concurrent callbacks can both pass simultaneously.
+
+### Tickets
+
+A ticket is issued only by the transition into `paid`, in the same transaction that records the
+payment. There is no code path that issues a ticket without a settled payment, because there is
+no function that does it.
+
+The QR code encodes a ticket id and an HMAC over it, signed with a server-held key. A scanner at
+the gate can verify the signature offline; marking the ticket used requires connectivity, so the
+scanner queues those and reconciles when it has signal. Double-entry is prevented by a unique
+constraint on `(ticket_id, used_at IS NOT NULL)` rather than by the scanner's own memory.
+
+## Trade-offs
+
+<Callout variant="warning" title="Reconciliation is still manual">
+When Safaricom debits a customer and the callback never arrives, the order sits in
+`awaiting_payment` until it expires. The correct fix is a scheduled job polling Daraja's
+transaction status API for stale orders. Today that reconciliation is a manual query I run
+against the payments table, which does not scale past a small event.
+</Callout>
+
+Supabase over a self-managed Postgres was a deliberate cost decision: row-level security,
+connection pooling and a managed backup story for nothing, at the price of vendor lock-in in
+the auth layer specifically. If that ever needs undoing, the auth tables are the part that hurts.
+
+## What I would do differently
+
+Model the payment as an event log from the beginning rather than a mutable row with a status
+column. Every Daraja interaction is already an immutable fact with a timestamp; storing them as
+appended events and deriving the order state from them would have made the reconciliation
+problem above nearly trivial, instead of something bolted on afterwards.

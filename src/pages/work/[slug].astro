@@ -1,0 +1,443 @@
+---
+/**
+ * Case study page.
+ *
+ * Structure mirrors how an engineer reads: what it is, what it runs on,
+ * what it did, then the prose, then the named trade-offs. The trade-off
+ * list is rendered from frontmatter rather than left to the author's
+ * discipline, so every case study has to answer "what did this decision
+ * cost" in a consistent place.
+ */
+import { getCollection, render, type CollectionEntry } from 'astro:content';
+import BaseLayout from '@layouts/BaseLayout.astro';
+import Button from '@components/ui/Button.astro';
+import Icon from '@components/ui/Icon.astro';
+
+export async function getStaticPaths() {
+  const projects = await getCollection('projects', ({ data }) => !data.draft);
+  return projects.map((project) => ({
+    params: { slug: project.id },
+    props: { project },
+  }));
+}
+
+interface Props {
+  project: CollectionEntry<'projects'>;
+}
+
+const { project } = Astro.props;
+const { data } = project;
+const { Content } = await render(project);
+
+const STATUS_LABEL: Record<typeof data.status, string> = {
+  live: 'Live',
+  'in-development': 'In development',
+  archived: 'Archived',
+  prototype: 'Prototype',
+};
+---
+
+<BaseLayout title={data.title} description={data.summary} type="article" padded>
+  <article class="case">
+    {/* ── Header ─────────────────────────────────────────────────────── */}
+    <header class="container container--wide case__header">
+      <a href="/#work" class="case__back">
+        <Icon name="arrow-right" size={15} class="case__back-icon" />
+        All work
+      </a>
+
+      <div class="case__meta-row">
+        <span class:list={['status', `status--${data.status}`]}>
+          <span class="status__dot" aria-hidden="true"></span>
+          {STATUS_LABEL[data.status]}
+        </span>
+        <span class="case__timeline">{data.timeline}</span>
+      </div>
+
+      <h1>{data.title}</h1>
+      <p class="case__tagline">{data.tagline}</p>
+
+      <div class="case__actions cluster">
+        {
+          data.links.live && (
+            <Button href={data.links.live} variant="primary" icon="external">
+              Visit it
+            </Button>
+          )
+        }
+        {
+          data.links.repo && (
+            <Button
+              href={data.links.repo}
+              variant="secondary"
+              icon="github"
+              iconPosition="start"
+            >
+              Source
+            </Button>
+          )
+        }
+        {
+          !data.links.live && !data.links.repo && (
+            <p class="case__no-links">
+              Links are not public yet. Ask me for a walkthrough — I am happy to give one.
+            </p>
+          )
+        }
+      </div>
+    </header>
+
+    {/* ── Spec strip ─────────────────────────────────────────────────── */}
+    <div class="container container--wide">
+      <dl class="spec">
+        <div>
+          <dt>Role</dt>
+          <dd>{data.role}</dd>
+        </div>
+        <div>
+          <dt>Timeline</dt>
+          <dd>{data.timeline}</dd>
+        </div>
+        <div class="spec__stack">
+          <dt>Stack</dt>
+          <dd>
+            <ul role="list">
+              {data.stack.map((tech) => <li>{tech}</li>)}
+            </ul>
+          </dd>
+        </div>
+      </dl>
+    </div>
+
+    {/* ── Metrics ────────────────────────────────────────────────────── */}
+    {
+      data.metrics.length > 0 && (
+        <div class="container container--wide">
+          <ul class="metrics" role="list">
+            {data.metrics.map((metric) => (
+              <li>
+                <p class="metrics__value">{metric.value}</p>
+                <p class="metrics__label">{metric.label}</p>
+                {metric.detail && <p class="metrics__detail">{metric.detail}</p>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )
+    }
+
+    {/* ── Highlights ─────────────────────────────────────────────────── */}
+    <div class="container container--prose">
+      <h2 class="case__section-heading">In one screen</h2>
+      <ul class="highlights" role="list">
+        {
+          data.highlights.map((highlight) => (
+            <li>
+              <Icon name="check" size={16} />
+              <span>{highlight}</span>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+
+    {/* ── Body ───────────────────────────────────────────────────────── */}
+    <div class="container container--prose prose">
+      <Content />
+    </div>
+
+    {/* ── Trade-offs ─────────────────────────────────────────────────── */}
+    {
+      data.tradeoffs.length > 0 && (
+        <div class="container container--prose">
+          <h2 class="case__section-heading">Trade-offs, named</h2>
+          <ul class="tradeoffs" role="list">
+            {data.tradeoffs.map((tradeoff) => (
+              <li>
+                <h3>{tradeoff.decision}</h3>
+                <p class="tradeoffs__rationale">{tradeoff.rationale}</p>
+                <p class="tradeoffs__cost">
+                  <span>What it cost</span>
+                  {tradeoff.cost}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )
+    }
+
+    {/* ── Footer CTA ─────────────────────────────────────────────────── */}
+    <div class="container container--prose case__foot">
+      <p>
+        Questions about any of this? I would rather talk about the hard parts than the demo.
+      </p>
+      <Button href="/#contact" variant="primary" icon="arrow-right">Get in touch</Button>
+    </div>
+  </article>
+</BaseLayout>
+
+<style>
+  .case > * + * {
+    margin-block-start: var(--space-xl);
+  }
+
+  /* ── Header ────────────────────────────────────────────────────────── */
+
+  .case__back {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2xs);
+    font-size: var(--step--1);
+    color: var(--text-tertiary);
+    text-decoration: none;
+  }
+
+  .case__back:hover {
+    color: var(--text-accent);
+  }
+
+  .case__back :global(.case__back-icon) {
+    transform: rotate(180deg);
+  }
+
+  .case__meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-s);
+    margin-block-start: var(--space-m);
+    font-size: var(--step--2);
+    color: var(--text-tertiary);
+  }
+
+  .case__timeline {
+    font-family: var(--font-mono);
+  }
+
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-3xs);
+    font-family: var(--font-mono);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+  }
+
+  .status__dot {
+    inline-size: 0.4rem;
+    block-size: 0.4rem;
+    border-radius: var(--radius-full);
+    background-color: currentcolor;
+  }
+
+  .status--live {
+    color: var(--c-success);
+  }
+  .status--in-development {
+    color: var(--c-warning);
+  }
+  .status--prototype,
+  .status--archived {
+    color: var(--text-tertiary);
+  }
+
+  .case__header h1 {
+    margin-block-start: var(--space-xs);
+    font-size: var(--step-5);
+    max-inline-size: 20ch;
+  }
+
+  .case__tagline {
+    margin-block-start: var(--space-s);
+    max-inline-size: 60ch;
+    font-size: var(--step-1);
+    color: var(--text-secondary);
+  }
+
+  .case__actions {
+    margin-block-start: var(--space-m);
+  }
+
+  .case__no-links {
+    font-size: var(--step--1);
+    color: var(--text-tertiary);
+  }
+
+  /* ── Spec strip ────────────────────────────────────────────────────── */
+
+  .spec {
+    display: grid;
+    gap: var(--space-m);
+    grid-template-columns: 1fr;
+    padding-block: var(--space-m);
+    border-block: 1px solid var(--border-subtle);
+  }
+
+  @media (min-width: 48rem) {
+    .spec {
+      grid-template-columns: auto auto 1fr;
+      gap: var(--space-xl);
+    }
+  }
+
+  .spec dt {
+    font-family: var(--font-mono);
+    font-size: var(--step--2);
+    letter-spacing: var(--tracking-caps);
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+  }
+
+  .spec dd {
+    margin: 0;
+    margin-block-start: var(--space-3xs);
+    font-size: var(--step--1);
+  }
+
+  .spec__stack ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3xs);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .spec__stack li {
+    padding: 0.15rem var(--space-2xs);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-full);
+    background-color: var(--surface-raised);
+    font-family: var(--font-mono);
+    font-size: var(--step--2);
+    color: var(--text-tertiary);
+  }
+
+  /* ── Metrics ───────────────────────────────────────────────────────── */
+
+  .metrics {
+    display: grid;
+    gap: var(--space-m);
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .metrics li {
+    padding: var(--space-m);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-l);
+    background-color: var(--surface-raised);
+  }
+
+  .metrics__value {
+    font-size: var(--step-4);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-tight);
+    color: var(--text-accent);
+    line-height: var(--leading-tight);
+  }
+
+  .metrics__label {
+    margin-block-start: var(--space-2xs);
+    font-size: var(--step--1);
+    font-weight: var(--weight-medium);
+  }
+
+  .metrics__detail {
+    margin-block-start: var(--space-3xs);
+    font-size: var(--step--2);
+    color: var(--text-tertiary);
+  }
+
+  /* ── Highlights ────────────────────────────────────────────────────── */
+
+  .case__section-heading {
+    font-size: var(--step-2);
+    margin-block-end: var(--space-s);
+  }
+
+  .highlights {
+    display: grid;
+    gap: var(--space-xs);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .highlights li {
+    display: flex;
+    align-items: start;
+    gap: var(--space-xs);
+    color: var(--text-secondary);
+  }
+
+  .highlights :global(.icon) {
+    margin-block-start: 0.3em;
+    color: var(--text-accent);
+  }
+
+  /* ── Trade-offs ────────────────────────────────────────────────────── */
+
+  .tradeoffs {
+    display: grid;
+    gap: var(--space-m);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .tradeoffs li {
+    padding: var(--space-m);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-l);
+    background-color: var(--surface-raised);
+  }
+
+  .tradeoffs h3 {
+    font-size: var(--step-1);
+  }
+
+  .tradeoffs__rationale {
+    margin-block-start: var(--space-2xs);
+    color: var(--text-secondary);
+    font-size: var(--step--1);
+  }
+
+  .tradeoffs__cost {
+    margin-block-start: var(--space-s);
+    padding-block-start: var(--space-xs);
+    border-block-start: 1px solid var(--border-subtle);
+    font-size: var(--step--1);
+    color: var(--text-secondary);
+  }
+
+  .tradeoffs__cost span {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: var(--step--2);
+    letter-spacing: var(--tracking-caps);
+    text-transform: uppercase;
+    color: var(--c-warning);
+    margin-block-end: var(--space-3xs);
+  }
+
+  /* ── Foot ──────────────────────────────────────────────────────────── */
+
+  .case__foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-m);
+    padding-block-start: var(--space-l);
+    border-block-start: 1px solid var(--border-subtle);
+  }
+
+  .case__foot p {
+    max-inline-size: 46ch;
+    color: var(--text-secondary);
+  }
+</style>

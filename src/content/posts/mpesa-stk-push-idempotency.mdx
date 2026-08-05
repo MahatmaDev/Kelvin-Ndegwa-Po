@@ -1,0 +1,165 @@
+---
+title: Your M-Pesa integration will charge someone twice
+description: >-
+  STK Push is asynchronous, Safaricom retries its callbacks, and most Daraja
+  integrations treat both facts as edge cases. Here is what actually goes wrong and
+  the four constraints that fix it.
+publishedAt: 2026-08-05
+tags:
+  - payments
+  - m-pesa
+  - postgres
+  - idempotency
+draft: false
+---
+
+Almost every M-Pesa integration I have read — in tutorials, in open-source repos, in production
+code I have been shown — has the same shape:
+
+```ts
+// The version that looks finished and is not.
+async function handleCallback(body: DarajaCallback) {
+  const { CheckoutRequestID, ResultCode } = body.Body.stkCallback;
+
+  if (ResultCode === 0) {
+    const order = await db.order.findByCheckoutId(CheckoutRequestID);
+    await db.order.update(order.id, { paid: true });
+    await issueTicket(order);
+  }
+
+  return { ResultCode: 0, ResultDesc: 'Accepted' };
+}
+```
+
+This passes every test you are likely to write for it. It also has three distinct bugs, and all
+three of them only appear once real money is moving.
+
+## Fact one: the callback can arrive twice
+
+Safaricom's Daraja API retries callbacks it does not consider acknowledged. Network blips,
+your own deploy restarting mid-request, a slow database — any of these can produce a second
+delivery of a callback you already processed.
+
+The code above will then find the order, update it to `paid` a second time (harmless), and
+call `issueTicket` a second time (not harmless). One payment, two tickets.
+
+The usual instinct is a guard:
+
+```ts
+if (order.paid) return { ResultCode: 0, ResultDesc: 'Already processed' };
+```
+
+This does not work, and the reason it does not work is the interesting part. Two callbacks
+arriving concurrently — which is exactly what a retry storm looks like — can both execute that
+read before either executes its write. Both see `paid === false`. Both proceed. You have moved
+the race condition, not removed it.
+
+**A check-then-act in application code is not a guarantee.** It is a guarantee only if nothing
+else is running, and something else is always running.
+
+### What actually works
+
+Let the database refuse:
+
+```sql
+create table payments (
+  id                  uuid primary key default gen_random_uuid(),
+  order_id            uuid not null references orders(id),
+  checkout_request_id text not null unique,   -- ← the whole fix
+  result_code         int  not null,
+  raw                 jsonb not null,
+  created_at          timestamptz not null default now()
+);
+```
+
+Now callback handling starts with the insert:
+
+```ts
+async function handleCallback(body: DarajaCallback) {
+  const { CheckoutRequestID, ResultCode } = body.Body.stkCallback;
+
+  try {
+    await db.payment.insert({
+      checkoutRequestId: CheckoutRequestID,
+      resultCode: ResultCode,
+      raw: body,
+    });
+  } catch (err) {
+    if (isUniqueViolation(err)) {
+      // Genuine duplicate. Already handled. Say so and stop.
+      return { ResultCode: 0, ResultDesc: 'Accepted' };
+    }
+    throw err;
+  }
+
+  if (ResultCode === 0) await fulfil(CheckoutRequestID);
+
+  return { ResultCode: 0, ResultDesc: 'Accepted' };
+}
+```
+
+Two concurrent callbacks now both attempt the insert. Postgres serialises them on the unique
+index and exactly one succeeds. The loser gets a constraint violation, recognises it, and exits.
+There is no window between the check and the act, because there is no check.
+
+## Fact two: a non-2xx response asks for more traffic
+
+Notice that the duplicate branch returns success. That is deliberate.
+
+If your handler throws — because you let the constraint violation propagate, say — your
+framework returns a `500`, and Safaricom interprets that as "not delivered" and retries. You
+have built a system where the response to being overloaded by retries is to request more
+retries.
+
+The rule: **return 2xx for anything you have durably recorded, including duplicates.** Reserve
+non-2xx for the case where you genuinely failed to persist and genuinely want it again.
+
+## Fact three: the customer can be debited when you never hear about it
+
+This is the one that costs you a customer rather than a ticket.
+
+The user completes the STK prompt. Safaricom debits them. The callback is lost — a deploy, a DNS
+hiccup, a bug in your handler. Your order sits in `awaiting_payment` forever. Your records say
+the customer did not pay. The customer's phone says they did, and they have the SMS.
+
+No amount of callback hardening fixes this, because the failure is the absence of a callback.
+The fix is to stop treating the callback as your only source of truth:
+
+```ts
+// Runs every few minutes.
+const stale = await db.order.findAwaitingPaymentOlderThan(minutes(3));
+
+for (const order of stale) {
+  const status = await daraja.queryStkStatus(order.checkoutRequestId);
+  if (status.ResultCode === 0) await fulfil(order.checkoutRequestId);
+  else if (isTerminalFailure(status)) await markFailed(order.id);
+  // Otherwise: still genuinely pending. Leave it and look again next run.
+}
+```
+
+The callback is an optimisation — it makes the happy path fast. The reconciliation poll is the
+correctness mechanism. Most integrations ship the optimisation and call it the mechanism.
+
+## Fact four: the amount must never come from the client
+
+Unrelated to concurrency, but it belongs in the same conversation because it has the same root
+cause — trusting something you do not control.
+
+If your checkout endpoint accepts `{ amount: 1500 }` from the browser, your prices are whatever
+the user's DevTools say they are. The request should carry a ticket-type id and a quantity. The
+server looks up the price. The number sent to Daraja is one your server computed and no one else
+has touched.
+
+## The shape of the fix
+
+Four constraints, none of them large:
+
+1. A unique column on `checkout_request_id`, and let the insert be the concurrency control.
+2. Return 2xx for duplicates.
+3. Poll Daraja for orders that have gone quiet — the callback is not your source of truth.
+4. Never accept an amount from the client.
+
+None of this is specific to M-Pesa. Stripe, Flutterwave and Paystack all have the same
+asynchronous shape and the same retry semantics, and they all reward the same four decisions.
+M-Pesa is just where a very large number of African developers meet the problem first, usually
+in production, usually at an event with a queue at the gate.

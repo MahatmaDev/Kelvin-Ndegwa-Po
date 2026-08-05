@@ -1,0 +1,117 @@
+---
+title: ChamaOS
+tagline: Contribution tracking for Kenyan savings groups, built for a network that drops.
+summary: >-
+  A cross-platform mobile app for chamas — the rotating savings groups that move
+  serious money through informal, WhatsApp-and-notebook bookkeeping. Members record
+  contributions, treasurers reconcile them, and the whole thing has to stay honest
+  when three people record the same payment while two of them are offline.
+role: Sole engineer — mobile client, Firebase backend, sync model
+timeline: 2025 — present
+status: in-development
+stack:
+  - React Native
+  - Expo
+  - expo-router
+  - TypeScript
+  - Firebase Auth
+  - Cloud Functions
+domains:
+  - mobile
+  - backend
+  - data
+highlights:
+  - Offline-first writes with deterministic client-generated ids, so a retry cannot double-post
+  - Contribution totals computed in a Cloud Function, never trusted from the device
+  - Role separation — member, treasurer, chair — enforced in security rules rather than in the UI
+  - Optimistic UI that shows pending state honestly instead of pretending the write succeeded
+links: {}
+featured: true
+order: 2
+draft: false
+---
+
+import Callout from '@components/ui/Callout.astro';
+
+<Callout variant="draft">
+Drafted from the stack declared in `src/data/site.ts`. The design reasoning is real; **group
+counts, contribution volumes, launch dates and any user numbers are placeholders**. Before
+publishing, confirm: repo link, whether it is on a store or in TestFlight/internal testing,
+the actual role model, and whether the offline queue described below is implemented or planned.
+</Callout>
+
+## The problem
+
+A chama is a rotating savings group. Members contribute a fixed amount on a fixed schedule, and
+the pot goes to one member per cycle. In Kenya this is not a niche activity — it is how a very
+large amount of household capital actually moves.
+
+The bookkeeping is usually a notebook, a WhatsApp group, and a treasurer's memory. That works
+until it does not, and when it fails it fails as a dispute about money between people who know
+each other. The software problem is small. The trust problem is the whole thing.
+
+## Why this is a distributed systems problem
+
+The naive version of this app is a form that writes a row. The real version has to answer:
+
+- Two members record the same cash payment. Is that one contribution or two?
+- The treasurer marks a contribution confirmed while offline; a member edits it, also offline.
+  Both sync an hour later. Which wins?
+- A member's phone shows a total. Did the phone compute it, and if so, why would anyone else
+  believe it?
+
+Every one of these is a concurrency question wearing ordinary clothes.
+
+### Client-generated ids
+
+A contribution's id is generated on the device, deterministically, before the write is attempted.
+If the network drops mid-write and the client retries, the retry carries the same id and the
+server write is an idempotent upsert rather than a second document.
+
+The alternative — letting the backend assign ids — means a dropped response is indistinguishable
+from a failed write, and the client's only options are to risk a duplicate or risk losing the
+entry. On the connections this app is actually used on, that case is not rare.
+
+<Callout variant="decision" title="Decision: totals are server-computed, always">
+Balances and contribution totals are written by a Cloud Function triggered on contribution
+writes, never summed on the device. The client displays a number it was given; it cannot
+produce one.
+
+The cost is latency — a total can lag its contribution by a second or two, and the UI has to
+show that honestly. The benefit is that no member can ever be shown a figure that another
+member's phone disagrees with, which is the entire product.
+</Callout>
+
+### Permissions where they cannot be bypassed
+
+Members can create their own contributions. Treasurers can confirm anyone's. Chairs can alter
+group membership. None of that is expressed as a hidden button — a hidden button is a
+suggestion. It is expressed in Firestore security rules, which run on Google's side of the
+trust boundary and apply identically to the app, a rooted device, and `curl`.
+
+### Honest optimistic UI
+
+A pending contribution renders immediately, in a visibly pending state, with the entry greyed
+and a small sync indicator. It is not styled as confirmed until the server says so.
+
+Optimistic UI that lies — showing a write as complete before it has landed — is worse than a
+spinner in a money app. The user makes decisions based on what the screen says.
+
+## Trade-offs
+
+<Callout variant="warning" title="Firestore was probably the wrong database">
+A chama's data is aggressively relational: groups have members, members have contributions,
+cycles have payouts, and almost every useful question is a join. Firestore gave me offline
+persistence and realtime listeners for free, which is why I chose it, and then charged me for it
+in denormalised writes that have to be kept consistent by hand in Cloud Functions.
+
+Postgres with a sync layer would have been more work upfront and less work now. I would still
+have picked Firestore to get to a working app, but I would not defend it as the long-term choice.
+</Callout>
+
+## What I would do differently
+
+Model the ledger as append-only from the start. A contribution should never be edited — a
+correction should be a second, signed entry that references the first. That is how the paper
+notebook already works, and it is also what makes the offline merge question above disappear:
+appended entries never conflict, they only need ordering.

@@ -1,0 +1,29 @@
+---
+/**
+ * Home.
+ *
+ * Section order follows the reader priority in STRATEGY.md §4: the
+ * recruiter's checklist first (hero), then the evidence an engineer wants
+ * (work), then who I am, what I know, what I sell, and how to reach me.
+ *
+ * Anything that delays the hero being readable does not belong on this page.
+ */
+import BaseLayout from '@layouts/BaseLayout.astro';
+import Hero from '@components/sections/Hero.astro';
+import Work from '@components/sections/Work.astro';
+import About from '@components/sections/About.astro';
+import Skills from '@components/sections/Skills.astro';
+import Services from '@components/sections/Services.astro';
+import Contact from '@components/sections/Contact.astro';
+import LatestWriting from '@components/sections/LatestWriting.astro';
+---
+
+<BaseLayout>
+  <Hero />
+  <Work />
+  <About />
+  <Skills />
+  <Services />
+  <LatestWriting />
+  <Contact />
+</BaseLayout>

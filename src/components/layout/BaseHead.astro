@@ -1,0 +1,112 @@
+---
+/**
+ * Everything inside <head>: meta, Open Graph, Twitter cards, canonical URL,
+ * fonts, and JSON-LD.
+ *
+ * Centralised so that adding a page cannot accidentally ship one without a
+ * canonical URL or a social preview — the two SEO mistakes that are
+ * invisible locally and embarrassing once someone shares the link.
+ */
+import { SITE, buildPersonSchema } from '@data/site';
+import { THEME_INIT_SCRIPT } from '@lib/theme';
+
+import '@fontsource-variable/inter/wght.css';
+import '@fontsource-variable/jetbrains-mono/wght.css';
+import '@styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+  /** Absolute or site-relative path to a social preview image. */
+  image?: string;
+  imageAlt?: string;
+  /** `article` for blog posts and case studies, `website` otherwise. */
+  type?: 'website' | 'article';
+  publishedAt?: Date;
+  updatedAt?: Date;
+  /** Keep unfinished or utility pages out of search results. */
+  noindex?: boolean;
+}
+
+const {
+  title,
+  description = SITE.description,
+  image = '/og-default.png',
+  imageAlt = `${SITE.name} — ${SITE.title}`,
+  type = 'website',
+  publishedAt,
+  updatedAt,
+  noindex = false,
+} = Astro.props;
+
+/* Home page uses the full title verbatim; inner pages get it as a suffix. */
+const pageTitle = title ? `${title} · ${SITE.shortName}` : SITE.title;
+
+const canonical = new URL(Astro.url.pathname.replace(/\/+$/, '') || '/', SITE.url);
+const socialImage = new URL(image, SITE.url);
+
+const personSchema = buildPersonSchema();
+---
+
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="generator" content={Astro.generator} />
+
+{/* Resolve the theme before first paint. Must stay inline and blocking. */}
+<script is:inline set:html={THEME_INIT_SCRIPT} />
+
+<title>{pageTitle}</title>
+<meta name="description" content={description} />
+<link rel="canonical" href={canonical.href} />
+
+{noindex && <meta name="robots" content="noindex, nofollow" />}
+
+<meta name="author" content={SITE.name} />
+<meta name="theme-color" content={SITE.themeColor} />
+<meta name="color-scheme" content="dark light" />
+
+{/* Open Graph */}
+<meta property="og:type" content={type} />
+<meta property="og:site_name" content={SITE.name} />
+<meta property="og:title" content={pageTitle} />
+<meta property="og:description" content={description} />
+<meta property="og:url" content={canonical.href} />
+<meta property="og:image" content={socialImage.href} />
+<meta property="og:image:alt" content={imageAlt} />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:locale" content="en_KE" />
+
+{
+  type === 'article' && publishedAt && (
+    <meta property="article:published_time" content={publishedAt.toISOString()} />
+  )
+}
+{
+  type === 'article' && updatedAt && (
+    <meta property="article:modified_time" content={updatedAt.toISOString()} />
+  )
+}
+
+{/* Twitter / X */}
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={pageTitle} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={socialImage.href} />
+<meta name="twitter:image:alt" content={imageAlt} />
+
+{/* Icons */}
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<link rel="manifest" href="/site.webmanifest" />
+
+<link rel="sitemap" href="/sitemap-index.xml" />
+<link
+  rel="alternate"
+  type="application/rss+xml"
+  title={`Writing — ${SITE.shortName}`}
+  href={new URL('/rss.xml', SITE.url).href}
+/>
+
+{/* schema.org Person, so search engines resolve the name to the right entity. */}
+<script type="application/ld+json" is:inline set:html={JSON.stringify(personSchema)} />

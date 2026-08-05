@@ -1,0 +1,41 @@
+---
+/**
+ * Confirmation page for a form submitted without JavaScript.
+ *
+ * The island normally shows an inline success state and this page is never
+ * seen. It exists so that the no-JS path ends somewhere deliberate rather
+ * than on a JSON blob.
+ */
+import BaseLayout from '@layouts/BaseLayout.astro';
+import Button from '@components/ui/Button.astro';
+import { PROFILE } from '@data/site';
+---
+
+<BaseLayout title="Message sent" description="Your message reached me." noindex padded>
+  <div class="container container--prose stack">
+    <p class="eyebrow">Contact</p>
+    <h1>Message sent.</h1>
+    <p class="text-secondary">
+      It reached my inbox. I read everything that arrives there and reply to anything that is
+      not a pitch — usually within a working day.
+    </p>
+    <p class="text-secondary">
+      If it is urgent, <a href={`mailto:${PROFILE.email}`}>{PROFILE.email}</a> is the fastest route.
+    </p>
+
+    <div class="cluster">
+      <Button href="/" variant="secondary" icon="arrow-right">Back to the site</Button>
+      <Button href="/work/" variant="ghost" icon="arrow-right">Read a case study</Button>
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  h1 {
+    font-size: var(--step-4);
+  }
+
+  .cluster {
+    margin-block-start: var(--space-m);
+  }
+</style>

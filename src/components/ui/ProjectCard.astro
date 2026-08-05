@@ -1,0 +1,264 @@
+---
+/**
+ * Project card.
+ *
+ * The whole card is a link target via a stretched pseudo-element on the
+ * title anchor, so the click area is the card while the accessible name
+ * stays the title alone — rather than the several hundred characters a
+ * wrapping <a> would read out.
+ */
+import type { CollectionEntry } from 'astro:content';
+import Icon from '@components/ui/Icon.astro';
+
+interface Props {
+  project: CollectionEntry<'projects'>;
+  /** Featured cards span the full grid width and show more detail. */
+  featured?: boolean;
+}
+
+const { project, featured = false } = Astro.props;
+const { data } = project;
+
+const STATUS_LABEL: Record<typeof data.status, string> = {
+  live: 'Live',
+  'in-development': 'In development',
+  archived: 'Archived',
+  prototype: 'Prototype',
+};
+
+/* Four is what fits on one line at the narrowest card width. */
+const visibleStack = data.stack.slice(0, 4);
+const remaining = data.stack.length - visibleStack.length;
+---
+
+<article
+  class:list={['card', featured && 'card--featured']}
+  data-project
+  data-domains={data.domains.join(' ')}
+>
+  <div class="card__head">
+    <span class:list={['status', `status--${data.status}`]}>
+      <span class="status__dot" aria-hidden="true"></span>
+      {STATUS_LABEL[data.status]}
+    </span>
+    <span class="card__timeline">{data.timeline}</span>
+  </div>
+
+  <h3 class="card__title">
+    <a href={`/work/${project.id}/`}>{data.title}</a>
+  </h3>
+
+  <p class="card__tagline">{data.tagline}</p>
+
+  {featured && <p class="card__summary">{data.summary}</p>}
+
+  {
+    featured && (
+      <ul class="card__highlights" role="list">
+        {data.highlights.slice(0, 3).map((highlight) => (
+          <li>
+            <Icon name="check" size={15} />
+            <span>{highlight}</span>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+
+  <ul class="card__stack" role="list">
+    {visibleStack.map((tech) => <li>{tech}</li>)}
+    {remaining > 0 && <li class="card__stack-more">+{remaining}</li>}
+  </ul>
+
+  <p class="card__cta" aria-hidden="true">
+    Read the case study
+    <Icon name="arrow-right" size={16} />
+  </p>
+</article>
+
+<style>
+  .card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    padding: var(--space-m);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-l);
+    background-color: var(--surface-raised);
+    transition:
+      border-color var(--duration-base) var(--ease-out),
+      transform var(--duration-base) var(--ease-out),
+      box-shadow var(--duration-base) var(--ease-out);
+  }
+
+  .card:hover {
+    border-color: var(--border-accent);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-m);
+  }
+
+  /* Hidden by the filter script. */
+  .card[hidden] {
+    display: none;
+  }
+
+  @media (min-width: 52rem) {
+    .card--featured {
+      grid-column: 1 / -1;
+      padding: var(--space-l);
+    }
+  }
+
+  .card__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-xs);
+    font-size: var(--step--2);
+    color: var(--text-tertiary);
+  }
+
+  .card__timeline {
+    font-family: var(--font-mono);
+  }
+
+  /* ── Status pill ───────────────────────────────────────────────────────*/
+
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-3xs);
+    font-family: var(--font-mono);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+  }
+
+  .status__dot {
+    inline-size: 0.4rem;
+    block-size: 0.4rem;
+    border-radius: var(--radius-full);
+    background-color: currentcolor;
+  }
+
+  .status--live {
+    color: var(--c-success);
+  }
+  .status--in-development {
+    color: var(--c-warning);
+  }
+  .status--prototype {
+    color: var(--text-tertiary);
+  }
+  .status--archived {
+    color: var(--text-tertiary);
+  }
+
+  /* ── Body ──────────────────────────────────────────────────────────────*/
+
+  .card__title {
+    font-size: var(--step-2);
+    letter-spacing: var(--tracking-snug);
+  }
+
+  .card--featured .card__title {
+    font-size: var(--step-3);
+  }
+
+  .card__title a {
+    text-decoration: none;
+  }
+
+  /* Stretch the title link over the whole card without inflating its
+     accessible name. */
+  .card__title a::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+  }
+
+  .card__tagline {
+    color: var(--text-secondary);
+    max-inline-size: 60ch;
+  }
+
+  .card__summary {
+    font-size: var(--step--1);
+    color: var(--text-tertiary);
+    max-inline-size: 72ch;
+  }
+
+  .card__highlights {
+    display: grid;
+    gap: var(--space-2xs);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: var(--step--1);
+    color: var(--text-secondary);
+  }
+
+  .card__highlights li {
+    display: flex;
+    align-items: start;
+    gap: var(--space-2xs);
+  }
+
+  .card__highlights :global(.icon) {
+    margin-block-start: 0.28em;
+    color: var(--text-accent);
+  }
+
+  /* ── Stack ─────────────────────────────────────────────────────────────*/
+
+  .card__stack {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3xs);
+    margin: 0;
+    margin-block-start: auto;
+    padding: 0;
+    list-style: none;
+  }
+
+  .card__stack li {
+    padding: 0.15rem var(--space-2xs);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-full);
+    background-color: var(--surface-inset);
+    font-family: var(--font-mono);
+    font-size: var(--step--2);
+    color: var(--text-tertiary);
+  }
+
+  .card__stack-more {
+    color: var(--text-accent);
+  }
+
+  .card__cta {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2xs);
+    font-size: var(--step--1);
+    font-weight: var(--weight-medium);
+    color: var(--text-accent);
+  }
+
+  .card__cta :global(.icon) {
+    transition: transform var(--duration-base) var(--ease-spring);
+  }
+
+  .card:hover .card__cta :global(.icon) {
+    transform: translateX(3px);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .card:hover {
+      transform: none;
+    }
+    .card:hover .card__cta :global(.icon) {
+      transform: none;
+    }
+  }
+</style>

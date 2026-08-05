@@ -1,0 +1,254 @@
+---
+/**
+ * About.
+ *
+ * Prose rather than a bullet list of adjectives. The job of this section is
+ * to answer the one question a card cannot: why this person builds the
+ * things they build. Every factual claim here is checkable — degree,
+ * institution, certifications, languages.
+ */
+import { PROFILE } from '@data/site';
+import Icon from '@components/ui/Icon.astro';
+
+/**
+ * Certificates that exist as files in /public. Adding one here without the
+ * PDF beside it produces a 404, so the list cannot drift from reality.
+ */
+const CERTIFICATIONS = [
+  { name: 'Cybersecurity Essentials', issuer: 'Cisco', file: 'Cyber security essentials.pdf' },
+  {
+    name: 'Introduction to Networking',
+    issuer: 'Cisco CCNA',
+    file: 'Introduction to networking ccna.pdf',
+  },
+  { name: 'Networking', issuer: 'Cisco', file: 'Networking.pdf' },
+  {
+    name: 'IoT & Digital Transformation',
+    issuer: 'Cisco',
+    file: 'Introduction to IOT and Digital Transformation.pdf',
+  },
+  { name: 'ICDL', issuer: 'ICDL Africa', file: 'icdl.pdf' },
+  { name: 'Diploma in Information Technology', issuer: 'DeKUT', file: 'Diploma.pdf' },
+] as const;
+---
+
+<section id="about" class="section section--raised" aria-labelledby="about-heading">
+  <div class="container container--wide">
+    <div class="about">
+      <div class="about__portrait">
+        <img
+          src="/assets/images/profile.jpg"
+          alt={`${PROFILE.name}, ${PROFILE.role}`}
+          width="480"
+          height="600"
+          loading="lazy"
+          decoding="async"
+        />
+      </div>
+
+      <div class="about__body">
+        <p class="eyebrow">About</p>
+        <h2 id="about-heading">I build for the network I actually have.</h2>
+
+        <div class="about__prose">
+          <p>
+            I am a final-year {PROFILE.education.degree} student at {
+              PROFILE.education.institution
+            } in Nyeri, Kenya. Most of what I know about distributed systems I learned the unglamorous
+            way — by building things that had to keep working on a connection that drops in the middle
+            of a payment.
+          </p>
+          <p>
+            That constraint turns out to be a good teacher. When the network is reliable you can
+            get away with treating a request as an event that either happened or did not. When
+            it is not, you are forced to learn what idempotency is for, why a state machine
+            beats a boolean, and why the database is the only place a guarantee can actually
+            live. Those lessons do not stay in Kenya — they are the same lessons at any scale
+            where retries exist.
+          </p>
+          <p>
+            I work across mobile, web and the backend underneath both, which is less a boast
+            about breadth than an admission about how I like to think. The interesting problems
+            in the systems I have built were never on one side of the API. They were in the
+            seam.
+          </p>
+          <p>
+            I write up what I build, including the parts that went wrong. There is a
+            <a href="/writing">writing section</a> for that, and the source of this site is
+            <a
+              href="https://github.com/MahatmaDev/Capstone-Project"
+              rel="noopener"
+              target="_blank">on GitHub</a
+            > if you would rather read code than prose.
+          </p>
+        </div>
+
+        <dl class="about__meta">
+          <div>
+            <dt>Languages</dt>
+            <dd>{PROFILE.languages.join(', ')}</dd>
+          </div>
+          <div>
+            <dt>Location</dt>
+            <dd>{PROFILE.location} · {PROFILE.timezone}</dd>
+          </div>
+        </dl>
+
+        <div class="certs">
+          <h3 class="certs__heading">Certifications</h3>
+          <ul class="certs__list" role="list">
+            {
+              CERTIFICATIONS.map((cert) => (
+                <li>
+                  <a
+                    href={`/assets/certifications/${cert.file}`}
+                    target="_blank"
+                    rel="noopener"
+                  >
+                    <span class="certs__name">{cert.name}</span>
+                    <span class="certs__issuer">{cert.issuer}</span>
+                    <Icon name="arrow-up-right" size={14} />
+                  </a>
+                </li>
+              ))
+            }
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .section--raised {
+    background-color: var(--surface-raised);
+    border-block: 1px solid var(--border-subtle);
+  }
+
+  .about {
+    display: grid;
+    gap: var(--space-xl);
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  @media (min-width: 56rem) {
+    .about {
+      grid-template-columns: minmax(0, 20rem) minmax(0, 1fr);
+      gap: var(--space-2xl);
+    }
+
+    .about__portrait {
+      position: sticky;
+      top: calc(var(--header-height, 4rem) + var(--space-m));
+    }
+  }
+
+  .about__portrait img {
+    inline-size: 100%;
+    max-inline-size: 20rem;
+    aspect-ratio: 4 / 5;
+    object-fit: cover;
+    border-radius: var(--radius-l);
+    border: 1px solid var(--border-subtle);
+    filter: grayscale(0.15);
+  }
+
+  .about__body h2 {
+    margin-block-start: var(--space-2xs);
+  }
+
+  .about__prose {
+    margin-block-start: var(--space-m);
+    max-inline-size: 68ch;
+    color: var(--text-secondary);
+  }
+
+  .about__prose > * + * {
+    margin-block-start: var(--space-s);
+  }
+
+  .about__prose a {
+    color: var(--text-accent);
+    text-decoration: underline;
+  }
+
+  .about__meta {
+    display: grid;
+    gap: var(--space-s);
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    max-inline-size: 40rem;
+    margin-block-start: var(--space-l);
+    padding-block-start: var(--space-s);
+    border-block-start: 1px solid var(--border-subtle);
+  }
+
+  .about__meta dt {
+    font-family: var(--font-mono);
+    font-size: var(--step--2);
+    letter-spacing: var(--tracking-caps);
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+  }
+
+  .about__meta dd {
+    margin: 0;
+    margin-block-start: var(--space-3xs);
+    font-size: var(--step--1);
+  }
+
+  /* ── Certifications ────────────────────────────────────────────────────*/
+
+  .certs {
+    margin-block-start: var(--space-l);
+  }
+
+  .certs__heading {
+    font-family: var(--font-mono);
+    font-size: var(--step--2);
+    font-weight: var(--weight-medium);
+    letter-spacing: var(--tracking-caps);
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    margin-block-end: var(--space-xs);
+  }
+
+  .certs__list {
+    display: grid;
+    gap: var(--space-3xs);
+    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .certs__list a {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2xs);
+    padding: var(--space-2xs) var(--space-xs);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-m);
+    background-color: var(--surface-base);
+    text-decoration: none;
+    font-size: var(--step--1);
+    transition:
+      border-color var(--duration-fast) var(--ease-out),
+      color var(--duration-fast) var(--ease-out);
+  }
+
+  .certs__list a:hover {
+    border-color: var(--border-accent);
+    color: var(--text-accent);
+  }
+
+  .certs__name {
+    font-weight: var(--weight-medium);
+  }
+
+  .certs__issuer {
+    margin-inline-start: auto;
+    color: var(--text-tertiary);
+    font-size: var(--step--2);
+  }
+</style>

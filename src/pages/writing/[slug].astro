@@ -1,0 +1,167 @@
+---
+/**
+ * Post page.
+ */
+import { getCollection, render, type CollectionEntry } from 'astro:content';
+import BaseLayout from '@layouts/BaseLayout.astro';
+import Icon from '@components/ui/Icon.astro';
+import Button from '@components/ui/Button.astro';
+import { formatDate, readingTime } from '@lib/format';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('posts', ({ data }) => !data.draft);
+  return posts.map((post) => ({
+    params: { slug: post.id },
+    props: { post },
+  }));
+}
+
+interface Props {
+  post: CollectionEntry<'posts'>;
+}
+
+const { post } = Astro.props;
+const { data } = post;
+const { Content } = await render(post);
+
+const minutes = readingTime(post.body ?? '');
+---
+
+<BaseLayout
+  title={data.title}
+  description={data.description}
+  type="article"
+  publishedAt={data.publishedAt}
+  updatedAt={data.updatedAt}
+  padded
+>
+  <article>
+    <header class="container container--prose post-head">
+      <a href="/writing/" class="post-head__back">
+        <Icon name="arrow-right" size={15} class="post-head__back-icon" />
+        All writing
+      </a>
+
+      <h1>{data.title}</h1>
+
+      <p class="post-head__meta">
+        <time datetime={data.publishedAt.toISOString()}>{formatDate(data.publishedAt)}</time>
+        <span aria-hidden="true">·</span>
+        <span>{minutes} min read</span>
+        {
+          data.updatedAt && (
+            <>
+              <span aria-hidden="true">·</span>
+              <span>Updated {formatDate(data.updatedAt)}</span>
+            </>
+          )
+        }
+      </p>
+
+      <p class="post-head__description">{data.description}</p>
+
+      {
+        data.tags.length > 0 && (
+          <ul class="post-head__tags" role="list">
+            {data.tags.map((tag) => (
+              <li>{tag}</li>
+            ))}
+          </ul>
+        )
+      }
+    </header>
+
+    <div class="container container--prose prose">
+      <Content />
+    </div>
+
+    <footer class="container container--prose post-foot">
+      <p>
+        If you have hit this problem in your own integration and solved it differently, I want
+        to hear about it.
+      </p>
+      <Button href="/#contact" variant="secondary" icon="arrow-right">Tell me</Button>
+    </footer>
+  </article>
+</BaseLayout>
+
+<style>
+  .post-head {
+    margin-block-end: var(--space-xl);
+  }
+
+  .post-head__back {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2xs);
+    font-size: var(--step--1);
+    color: var(--text-tertiary);
+    text-decoration: none;
+  }
+
+  .post-head__back:hover {
+    color: var(--text-accent);
+  }
+
+  .post-head__back :global(.post-head__back-icon) {
+    transform: rotate(180deg);
+  }
+
+  .post-head h1 {
+    margin-block-start: var(--space-m);
+    font-size: var(--step-4);
+  }
+
+  .post-head__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2xs);
+    margin-block-start: var(--space-s);
+    font-family: var(--font-mono);
+    font-size: var(--step--2);
+    color: var(--text-tertiary);
+  }
+
+  .post-head__description {
+    margin-block-start: var(--space-m);
+    padding-block-start: var(--space-m);
+    border-block-start: 1px solid var(--border-subtle);
+    font-size: var(--step-1);
+    color: var(--text-secondary);
+  }
+
+  .post-head__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3xs);
+    margin: 0;
+    margin-block-start: var(--space-m);
+    padding: 0;
+    list-style: none;
+  }
+
+  .post-head__tags li {
+    padding: 0.15rem var(--space-2xs);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-full);
+    font-family: var(--font-mono);
+    font-size: var(--step--2);
+    color: var(--text-tertiary);
+  }
+
+  .post-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-m);
+    margin-block-start: var(--space-xl);
+    padding-block-start: var(--space-l);
+    border-block-start: 1px solid var(--border-subtle);
+  }
+
+  .post-foot p {
+    max-inline-size: 46ch;
+    color: var(--text-secondary);
+  }
+</style>
