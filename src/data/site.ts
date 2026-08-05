@@ -78,7 +78,9 @@ export const PROFILE = {
   education: {
     degree: 'BSc, Information Technology',
     institution: 'Dedan Kimathi University of Technology',
-    status: 'Final year',
+    /** Awarded 12 June 2026. Certificate held and linked from the About section. */
+    status: 'Graduated 2026',
+    graduatedOn: '2026-06-12',
   },
 
   languages: ['English', 'Kiswahili', 'Kikuyu'],
@@ -291,6 +293,19 @@ export function buildPersonSchema() {
     alumniOf: {
       '@type': 'CollegeOrUniversity',
       name: PROFILE.education.institution,
+    },
+    /* Declaring the degree explicitly stops a search engine having to infer
+       "graduate" from `alumniOf` alone, which it will not do reliably. */
+    hasCredential: {
+      '@type': 'EducationalOccupationalCredential',
+      credentialCategory: 'degree',
+      educationalLevel: 'BachelorDegree',
+      name: PROFILE.education.degree,
+      dateCreated: PROFILE.education.graduatedOn,
+      recognizedBy: {
+        '@type': 'CollegeOrUniversity',
+        name: PROFILE.education.institution,
+      },
     },
     knowsAbout: SKILL_DOMAINS.flatMap((domain) => domain.skills),
     sameAs: SOCIALS.filter((s) => s.href.startsWith('http')).map((s) => s.href),

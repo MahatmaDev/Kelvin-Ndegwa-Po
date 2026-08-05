@@ -39,6 +39,14 @@ coverage/
 test-results/
 playwright-report/
 
+# Source-document staging area.
+#
+# Drop original scans and documents in /assets; copy into /public only the ones
+# that are meant to be public. This repo and the deployed site are both public,
+# so a document containing anyone else's personal data — a referee's phone
+# number, for instance — must never be copied across.
+/assets/
+
 # Misc
 *.tsbuildinfo
 *.zip

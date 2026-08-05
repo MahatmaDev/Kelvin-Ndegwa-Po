@@ -7,8 +7,9 @@
 
 ## 1. Honest situation assessment
 
-**Who you are today:** Final-year BSc Information Technology, Dedan Kimathi University of
-Technology (Nyeri, Kenya). Real, demonstrable skills in Kotlin/Android, Firebase +
+**Who you are today:** BSc Information Technology, Dedan Kimathi University of
+Technology (Nyeri, Kenya) — awarded 12 June 2026. Six months of ICT support experience at
+Consolata Mathari Hospital. Real, demonstrable skills in Kotlin/Android, Firebase +
 Cloud Functions, NestJS, REST API design, and vanilla web. One substantial original
 project (VibeWave). Certifications in networking, cybersecurity, IBM Full Stack.
 
@@ -164,7 +165,7 @@ Non-negotiables, in order:
 3. No committed `node_modules`. No committed secrets. _(This repo currently violates the first — fixed as part of the rebuild.)_
 4. Tests exist somewhere, visibly.
 
-### Publishing cadence — realistic for a final-year student
+### Publishing cadence — realistic alongside a job search
 
 Do not commit to a schedule you will abandon in three weeks.
 

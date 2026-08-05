@@ -11,24 +11,49 @@ import { PROFILE } from '@data/site';
 import Icon from '@components/ui/Icon.astro';
 
 /**
- * Certificates that exist as files in /public. Adding one here without the
- * PDF beside it produces a 404, so the list cannot drift from reality.
+ * Credentials, ordered by level: degree, then diploma, then professional
+ * certifications newest-first, then computer literacy.
+ *
+ * Every entry links to the scan of the actual document in /public — a
+ * certification a reviewer cannot open is a claim, not a credential. Adding
+ * one here without the PDF beside it produces a 404, so the list cannot
+ * drift from reality.
+ *
+ * Cisco issues both a certificate and a congratulations letter for the same
+ * CCNAv7 course. Only the certificate is listed; listing both would inflate
+ * the count by one and cost credibility with anyone who opened them.
  */
 const CERTIFICATIONS = [
-  { name: 'Cybersecurity Essentials', issuer: 'Cisco', file: 'Cyber security essentials.pdf' },
   {
-    name: 'Introduction to Networking',
-    issuer: 'Cisco CCNA',
-    file: 'Introduction to networking ccna.pdf',
+    name: 'BSc, Information Technology',
+    issuer: 'DeKUT · 2026',
+    file: 'BSc-Information-Technology.pdf',
   },
-  { name: 'Networking', issuer: 'Cisco', file: 'Networking.pdf' },
+  {
+    name: 'Diploma in Information Technology',
+    issuer: 'DeKUT · 2022',
+    file: 'Diploma-Information-Technology.pdf',
+  },
   {
     name: 'IoT & Digital Transformation',
-    issuer: 'Cisco',
-    file: 'Introduction to IOT and Digital Transformation.pdf',
+    issuer: 'Cisco · 2025',
+    file: 'Cisco-IoT-Digital-Transformation.pdf',
   },
-  { name: 'ICDL', issuer: 'ICDL Africa', file: 'icdl.pdf' },
-  { name: 'Diploma in Information Technology', issuer: 'DeKUT', file: 'Diploma.pdf' },
+  {
+    name: 'Cybersecurity Essentials',
+    issuer: 'Cisco · 2023',
+    file: 'Cisco-Cybersecurity-Essentials.pdf',
+  },
+  {
+    name: 'CCNAv7: Introduction to Networks',
+    issuer: 'Cisco · 2023',
+    file: 'Cisco-CCNAv7-Introduction-to-Networks.pdf',
+  },
+  {
+    name: 'ICDL Profile Certificate',
+    issuer: 'ICDL Africa · 2019',
+    file: 'ICDL-Profile-Certificate.pdf',
+  },
 ] as const;
 ---
 
@@ -52,11 +77,10 @@ const CERTIFICATIONS = [
 
         <div class="about__prose">
           <p>
-            I am a final-year {PROFILE.education.degree} student at {
-              PROFILE.education.institution
-            } in Nyeri, Kenya. Most of what I know about distributed systems I learned the unglamorous
-            way — by building things that had to keep working on a connection that drops in the middle
-            of a payment.
+            I hold a {PROFILE.education.degree} from {PROFILE.education.institution} in Nyeri, Kenya,
+            awarded in June 2026. Most of what I know about distributed systems I learned the unglamorous
+            way, though — by building things that had to keep working on a connection that drops in
+            the middle of a payment.
           </p>
           <p>
             That constraint turns out to be a good teacher. When the network is reliable you can
@@ -95,7 +119,7 @@ const CERTIFICATIONS = [
         </dl>
 
         <div class="certs">
-          <h3 class="certs__heading">Certifications</h3>
+          <h3 class="certs__heading">Education & certifications</h3>
           <ul class="certs__list" role="list">
             {
               CERTIFICATIONS.map((cert) => (
