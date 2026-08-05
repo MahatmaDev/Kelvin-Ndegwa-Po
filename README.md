@@ -5,7 +5,7 @@ The personal site of **Kelvin Maina Ndegwa** — full-stack engineer, Nyeri, Ken
 It is also, deliberately, a code sample. A hiring engineer who opens DevTools or clones this
 repo is an intended reader, so the architecture below is the point rather than an afterthought.
 
-**Live:** https://capstone-project.vercel.app
+**Live:** https://kelvin-ndegwa-portfolio.vercel.app
 
 ---
 

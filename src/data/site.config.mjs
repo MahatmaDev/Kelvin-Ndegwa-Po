@@ -12,7 +12,7 @@
  * cheapest credibility upgrade available.
  */
 export const SITE = {
-  url: 'https://capstone-project.vercel.app',
+  url: 'https://kelvin-ndegwa-portfolio.vercel.app',
   name: 'Kelvin Maina Ndegwa',
   shortName: 'Kelvin Ndegwa',
   locale: 'en',
