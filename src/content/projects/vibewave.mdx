@@ -1,0 +1,148 @@
+---
+title: VibeWave
+tagline: Real-time audience participation for live events — requests, voting, and a performer console.
+summary: >-
+  An event engagement system where an audience submits song requests and votes on them
+  while a performer works the room, and everyone's screen has to agree about the queue
+  within a second. Shipped as a working Android client; currently being rebuilt as a web
+  application. The interesting problem was never the UI — it was deciding what the queue
+  order *is* when two hundred phones are writing to it at once.
+role: Sole engineer — Android client, Firebase data model, realtime sync, web rebuild
+timeline: 2025 — present
+status: in-development
+stack:
+  - Kotlin
+  - Android SDK
+  - Firebase
+  - MVVM
+  - Next.js
+  - Supabase
+  - PostgreSQL
+domains:
+  - mobile
+  - backend
+  - data
+  - frontend
+highlights:
+  - Live request queue that stays consistent across every connected device, not just the one that wrote last
+  - Vote tallies aggregated server-side, so a client can display a count but never produce one
+  - MVVM with a unidirectional data flow — the UI renders realtime state rather than managing it
+  - Presented as an academic systems project (Innovation in IT) with the architecture defended in review
+links: {}
+featured: true
+order: 1
+draft: false
+---
+
+import Callout from '@components/ui/Callout.astro';
+
+<Callout variant="note" title="Where this project actually stands">
+The Android client is real and runs on a device: the realtime request and voting flow works
+end to end against Firebase. **Payments and the review flow are partial**, and the M-Pesa
+integration described under *Trade-offs* is designed but not yet wired to Daraja. The web
+rebuild is in progress. Everything below distinguishes what is built from what is planned —
+nothing here is described as shipped that is not.
+</Callout>
+
+## The problem
+
+At a live event the audience wants to influence what happens next, and the person performing
+wants that influence without losing control of the room. The paper version of this is people
+walking up and shouting requests. It does not scale past a small crowd, it rewards whoever is
+loudest, and the performer has no way to see what the room actually wants.
+
+The software version sounds trivial: a form that submits a song, and a list that shows the
+submissions. That version breaks immediately, and it breaks for reasons that have nothing to
+do with the form.
+
+## Why this is a concurrency problem
+
+Once more than a handful of people are using it at the same time, every interesting question
+is about simultaneity:
+
+- Two hundred phones are subscribed to the same queue. When one person votes, what does
+  everyone else's screen show, and how soon?
+- Two people request the same song within the same second. Is that one entry with two votes,
+  or two entries with one vote each? Getting this wrong makes the queue useless within
+  minutes — it fills with duplicates of whatever is popular.
+- A device's screen shows a vote count. Did that device compute the count? If so, why would
+  any other device agree with it?
+- The performer promotes a track from the queue while three people are voting on it. The
+  queue reorders underneath them.
+
+None of these are UI problems. They are all the same question — *who is allowed to decide what
+the state is* — and the answer has to be the same every time: not the client.
+
+## Architecture
+
+### The Android client (built)
+
+Kotlin, MVVM, with a strict rule: the ViewModel exposes state that came from Firebase, and the
+UI renders it. The client never computes a queue position or a vote total and never displays a
+number it invented locally.
+
+That rule is what makes the realtime behaviour correct rather than merely fast. A client that
+optimistically increments its own counter will drift from every other client, and the drift is
+invisible until two people compare screens at the same table.
+
+Firebase's realtime listeners do the fan-out: a write lands, and every subscribed device
+receives the updated queue. The client's job is to subscribe, render, and submit — nothing else.
+
+<Callout variant="decision" title="Decision: deduplicate requests at write time, not at read time">
+A request for a track that is already queued becomes a vote on the existing entry rather than a
+new entry. The alternative — storing every submission and collapsing duplicates when rendering —
+is easier to write and produces a queue that disagrees with itself, because two clients
+collapsing the same list independently can order ties differently.
+
+The cost is that "request" and "vote" stop being separate operations in the data model, which
+made the later analytics work harder than it needed to be. I would still make the same call:
+a queue that every device orders identically is the entire product.
+</Callout>
+
+### The web rebuild (in progress)
+
+The current work is a web client on Next.js with Supabase and PostgreSQL underneath, for two
+reasons.
+
+The first is reach. An audience at an event will not install an app to request one song. The
+install step is the single largest drop-off in the whole flow, and a web client removes it —
+a QR code on a table becomes a working client in two seconds.
+
+The second is that the data is more relational than Firestore wanted it to be. Events have
+sets, sets have queues, queues have entries, entries have votes, and almost every question
+worth asking is a join. Postgres expresses the constraints that currently live in application
+code — one vote per person per entry, for instance, belongs in a unique index, not in a
+function that two concurrent writes can both pass.
+
+## Trade-offs
+
+<Callout variant="warning" title="Firebase was the right start and the wrong end">
+Firebase gave me realtime fan-out, authentication and offline persistence for free, which is
+exactly what a solo developer building their first realtime system should take. It charged for
+that in denormalised writes kept consistent by hand, and in aggregate queries that a relational
+database answers in one line.
+
+I would choose it again to get to a working system. I would not defend it as the long-term
+store for this data — which is why the rebuild moves to Postgres.
+</Callout>
+
+<Callout variant="warning" title="Payments are designed, not built">
+The intended model is M-Pesa STK Push for paid requests: a listener pays to push a track up the
+queue. The order state machine and the idempotency approach are worked out — I wrote up the
+reasoning in [a separate post on Daraja callbacks](/writing/mpesa-stk-push-idempotency/) — but
+the Daraja integration is **not currently wired**, in sandbox or in production. Treat it as a
+design I can defend in a conversation, not as a system that has moved money.
+</Callout>
+
+## What I would do differently
+
+Separate the queue's *order* from the queue's *contents* from the start.
+
+Today an entry's position is derived from its vote count, which means every vote is a write that
+can reorder the list, and that reordering is what makes the concurrency hard. Storing votes as
+an append-only log and materialising the order on a schedule — or on the performer's explicit
+refresh — would have made the whole thing calmer, at the cost of the queue updating in seconds
+rather than instantly.
+
+The honest version of that lesson: I optimised for the queue looking live before I understood
+what it cost to keep it correct.

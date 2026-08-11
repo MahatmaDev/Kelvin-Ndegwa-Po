@@ -156,7 +156,7 @@ export const SKILL_DOMAINS: readonly SkillDomain[] = [
       'Rate limiting',
       'JWT & session auth',
     ],
-    evidence: 'goodvibes-tickets',
+    evidence: 'vibewave',
   },
   {
     name: 'Data & Persistence',
@@ -171,7 +171,7 @@ export const SKILL_DOMAINS: readonly SkillDomain[] = [
       'Firebase Firestore',
       'Schema design',
     ],
-    evidence: 'goodvibes-tickets',
+    evidence: 'vibewave',
   },
   {
     name: 'Mobile',
@@ -205,17 +205,25 @@ export const SKILL_DOMAINS: readonly SkillDomain[] = [
     evidence: 'portfolio',
   },
   {
-    name: 'Payments & Integrations',
-    summary: 'Money is the one domain where "mostly correct" is indistinguishable from broken.',
+    /*
+     * Deliberately labelled "studied", not "shipped".
+     *
+     * Nothing here is wired to production Daraja yet. The understanding is
+     * real and written up at /writing/mpesa-stk-push-idempotency/, but a
+     * reviewer who reads "M-Pesa integration" and finds no integration has
+     * learned something worse about the candidate than that he lacks it.
+     * Claim the analysis; do not claim the deployment.
+     */
+    name: 'Payments — studied, not yet shipped',
+    summary:
+      'Money is the one domain where "mostly correct" is indistinguishable from broken — so I will not claim it until I have shipped it. What I have is the failure analysis, written up in depth.',
     skills: [
-      'M-Pesa STK Push',
-      'Daraja API',
-      'Payment reconciliation',
-      'Async callback verification',
+      'M-Pesa STK Push (Daraja) — designed, not yet integrated',
+      'Asynchronous callback semantics',
+      'Idempotency & duplicate-delivery handling',
       'Order state machines',
-      'QR issuance & validation',
+      'Reconciliation strategy',
     ],
-    evidence: 'goodvibes-tickets',
   },
   {
     name: 'Practice & Tooling',
